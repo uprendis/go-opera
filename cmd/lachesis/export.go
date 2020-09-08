@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"io"
 	"os"
 	"strconv"
@@ -8,6 +10,7 @@ import (
 	"time"
 
 	"compress/gzip"
+
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -17,10 +20,10 @@ import (
 
 	appdb "github.com/Fantom-foundation/go-lachesis/app"
 	"github.com/Fantom-foundation/go-lachesis/gossip"
-	"github.com/Fantom-foundation/go-lachesis/hash"
+	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/go-lachesis/integration"
-	"github.com/Fantom-foundation/go-lachesis/inter/idx"
-	"github.com/Fantom-foundation/go-lachesis/kvdb/flushable"
+
+
 )
 
 var (

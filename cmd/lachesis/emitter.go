@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/Fantom-foundation/go-lachesis/gossip/emitter"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-lachesis/crypto"
-	"github.com/Fantom-foundation/go-lachesis/gossip"
 )
 
 var validatorFlag = cli.StringFlag{
@@ -17,7 +17,7 @@ var validatorFlag = cli.StringFlag{
 
 // setValidator retrieves the validator address either from the directly specified
 // command line flags or from the keystore if CLI indexed.
-func setValidator(ctx *cli.Context, ks *keystore.KeyStore, cfg *gossip.EmitterConfig) {
+func setValidator(ctx *cli.Context, ks *keystore.KeyStore, cfg *emitter.Config) {
 	// Extract the current validator address, new flag overriding legacy one
 	var validator string
 	switch {

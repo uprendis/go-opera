@@ -22,7 +22,7 @@ func SetupPrometheus(ctx *cli.Context) {
 	if !metrics.Enabled {
 		return
 	}
-	prometheus.SetNamespace("lachesis")
+	prometheus.SetNamespace("opera")
 	var endpoint = ctx.GlobalString(PrometheusEndpointFlag.Name)
 	prometheus.ListenTo(endpoint, nil)
 }

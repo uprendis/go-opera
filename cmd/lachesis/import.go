@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
 	"io"
 	"os"
 	"os/signal"
@@ -20,9 +21,8 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-lachesis/eventcheck"
-	"github.com/Fantom-foundation/go-lachesis/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/go-lachesis/gossip"
-	"github.com/Fantom-foundation/go-lachesis/hash"
+	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/go-lachesis/inter"
 )
 
@@ -144,7 +144,7 @@ func importFile(srv *gossip.Service, check bool, fn string) error {
 			return fmt.Errorf("interrupted")
 		default:
 		}
-		e := new(inter.Event)
+		e := new(inter.EventPayload)
 		err = stream.Decode(e)
 		if err == io.EOF {
 			break
@@ -166,8 +166,8 @@ func importFile(srv *gossip.Service, check bool, fn string) error {
 		} else if err != nil {
 			return err
 		} else {
-			log.Info("New event imported", "id", e.Hash(), "checked", check, "t", time.Since(eStart), "imported", imported, "skipped", skipped, "elapsed", common.PrettyDuration(time.Since(start)))
-			last = e.Hash()
+			log.Info("New event imported", "id", e.ID(), "checked", check, "t", time.Since(eStart), "imported", imported, "skipped", skipped, "elapsed", common.PrettyDuration(time.Since(start)))
+			last = e.ID()
 			imported++
 		}
 	}

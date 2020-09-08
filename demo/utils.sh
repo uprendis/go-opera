@@ -14,11 +14,11 @@ LIMIT_CPU=$(echo "scale=2; 1/$N" | bc)
 LIMIT_IO=$(echo "500/$N" | bc)
 
 # base dir for running demo
-LACHESIS_BASE_DIR=/tmp/lachesis-demo
+LACHESIS_BASE_DIR=/tmp/opera-demo
 
 #
-PROG=lachesis
-EXEC=../build/lachesis
+PROG=opera
+EXEC=../build/opera
 
 # default ip using localhost
 IP=127.0.0.1
