@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/Fantom-foundation/go-lachesis/lachesis/genesis/proxy/proxypos"
+	"github.com/Fantom-foundation/go-lachesis/opera/genesis/proxy/proxypos"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
