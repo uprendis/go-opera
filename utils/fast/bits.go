@@ -1,7 +1,7 @@
 package fast
 
 type (
-	// BitArray stores only first <1,2,4> bits of each of <count> numbers.
+	// Array stores only first <1,2,4> bits of each of <count> numbers.
 	BitArray struct {
 		bits  uint
 		count uint
@@ -10,13 +10,13 @@ type (
 		size   int
 	}
 
-	// BitArrayWriter of numbers to BitArray.
+	// BitArrayWriter of numbers to Array.
 	BitArrayWriter struct {
 		BitArray
 		raw *[]byte
 	}
 
-	// BitArrayReader of numbers from BitArray.
+	// BitArrayReader of numbers from Array.
 	BitArrayReader struct {
 		BitArray
 		raw *[]byte
@@ -75,7 +75,7 @@ func (a *BitArray) Size() int {
 	return a.size
 }
 
-// Push bits of number into array.
+// Write bits of number into array.
 func (a *BitArrayWriter) Push(v int) {
 	if v < 0 {
 		panic("only positives accepts")
@@ -88,7 +88,7 @@ func (a *BitArrayWriter) Push(v int) {
 	(*a.raw)[byteOffset] |= byte(v << bytePartOffset)
 }
 
-// Pop number from array.
+// Read number from array.
 func (a *BitArrayReader) Pop() int {
 	byteOffset, bytePartOffset := a.nextPart()
 	mask := byte((1 << a.bits) - 1)

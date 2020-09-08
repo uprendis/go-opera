@@ -40,3 +40,27 @@ func testBitArray(t *testing.T, bits uint) {
 
 	assert.EqualValues(t, len(raw), arr.Size(), ".Size()")
 }
+
+func BenchmarkArray_write(b *testing.B) {
+	b.Run("even", func(b *testing.B) {
+		b.ResetTimer()
+
+		arr := NewBitArray(2, uint(b.N))
+		writer := arr.Writer(make([]byte, arr.size))
+		for i := 0; i < b.N; i++ {
+			writer.Push(0)
+		}
+	})
+}
+
+func BenchmarkArray_read(b *testing.B) {
+	b.Run("even", func(b *testing.B) {
+		b.ResetTimer()
+
+		arr := NewBitArray(2, uint(b.N))
+		writer := arr.Reader(make([]byte, arr.size))
+		for i := 0; i < b.N; i++ {
+			writer.Pop()
+		}
+	})
+}
