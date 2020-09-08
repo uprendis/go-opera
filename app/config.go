@@ -7,8 +7,6 @@ type (
 		ReceiptsCacheSize int
 		// Cache size for Stakers.
 		StakersCacheSize int
-		// Cache size for Delegations.
-		DelegationsCacheSize int
 	}
 )
 
@@ -16,7 +14,6 @@ type (
 func DefaultStoreConfig() StoreConfig {
 	return StoreConfig{
 		ReceiptsCacheSize:    100,
-		DelegationsCacheSize: 4000,
 		StakersCacheSize:     4000,
 	}
 }
@@ -25,7 +22,6 @@ func DefaultStoreConfig() StoreConfig {
 func LiteStoreConfig() StoreConfig {
 	return StoreConfig{
 		ReceiptsCacheSize:    100,
-		DelegationsCacheSize: 400,
 		StakersCacheSize:     400,
 	}
 }

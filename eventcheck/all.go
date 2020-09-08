@@ -2,11 +2,11 @@ package eventcheck
 
 import (
 	"github.com/Fantom-foundation/go-lachesis/eventcheck/basiccheck"
-	"github.com/Fantom-foundation/go-lachesis/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/go-lachesis/eventcheck/gaspowercheck"
 	"github.com/Fantom-foundation/go-lachesis/eventcheck/heavycheck"
 	"github.com/Fantom-foundation/go-lachesis/eventcheck/parentscheck"
 	"github.com/Fantom-foundation/go-lachesis/inter"
+	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
 )
 
 // Checkers is collection of all the checkers
@@ -19,7 +19,7 @@ type Checkers struct {
 }
 
 // Validate runs all the checks except Poset-related
-func (v *Checkers) Validate(e *inter.Event, parents []*inter.EventHeaderData) error {
+func (v *Checkers) Validate(e inter.EventPayloadI, parents inter.EventIs) error {
 	if err := v.Basiccheck.Validate(e); err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (v *Checkers) Validate(e *inter.Event, parents []*inter.EventHeaderData) er
 	if err := v.Parentscheck.Validate(e, parents); err != nil {
 		return err
 	}
-	var selfParent *inter.EventHeaderData
+	var selfParent inter.EventI
 	if e.SelfParent() != nil {
 		selfParent = parents[0]
 	}
