@@ -1,12 +1,13 @@
 package topicsdb
 
 import (
+	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/Fantom-foundation/go-lachesis/kvdb/memorydb"
+
 )
 
 func BenchmarkSearch(b *testing.B) {
