@@ -18,6 +18,7 @@ package filters
 
 import (
 	"context"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
 	"math/big"
 	"reflect"
 	"testing"
@@ -33,11 +34,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/Fantom-foundation/go-lachesis/evmcore"
-	"github.com/Fantom-foundation/go-lachesis/hash"
-	"github.com/Fantom-foundation/go-lachesis/inter/pos"
-	"github.com/Fantom-foundation/go-lachesis/kvdb/memorydb"
-	"github.com/Fantom-foundation/go-lachesis/lachesis"
-	"github.com/Fantom-foundation/go-lachesis/lachesis/genesis"
+	"github.com/Fantom-foundation/go-lachesis/opera"
+	"github.com/Fantom-foundation/go-lachesis/opera/genesis"
 	"github.com/Fantom-foundation/go-lachesis/topicsdb"
 )
 
@@ -148,7 +146,7 @@ func TestBlockSubscription(t *testing.T) {
 		backend = newTestBackend()
 		api     = NewPublicFilterAPI(backend)
 
-		net         = lachesis.FakeNetConfig(genesis.FakeValidators(5, big.NewInt(0), pos.StakeToBalance(1)))
+		net         = opera.FakeNetConfig(genesis.FakeValidators(5, big.NewInt(0), big.NewInt(1)))
 		genesis     = evmcore.MustApplyGenesis(&net, backend.db)
 		chain, _, _ = evmcore.GenerateChain(
 			params.TestChainConfig, genesis, backend.db, 10, nil)
@@ -174,13 +172,13 @@ func TestBlockSubscription(t *testing.T) {
 		for i1 != len(chainEvents) || i2 != len(chainEvents) {
 			select {
 			case header := <-chan0:
-				got := hash.FromBytes(header.Extra)
+				got := common.BytesToHash(header.Extra)
 				if chainEvents[i1].Block.Hash != got {
 					t.Errorf("sub0 received invalid hash on index %d, want %x, got %x", i1, chainEvents[i1].Block.Hash, got)
 				}
 				i1++
 			case header := <-chan1:
-				got := hash.FromBytes(header.Extra)
+				got := common.BytesToHash(header.Extra)
 				if chainEvents[i2].Block.Hash != got {
 					t.Errorf("sub1 received invalid hash on index %d, want %x, got %x", i2, chainEvents[i2].Block.Hash, got)
 				}

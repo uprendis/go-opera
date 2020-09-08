@@ -18,6 +18,8 @@ package filters
 
 import (
 	"context"
+	"github.com/Fantom-foundation/go-lachesis/utils/adapters/ethdb2kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -31,7 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/Fantom-foundation/go-lachesis/kvdb/table"
+
 	"github.com/Fantom-foundation/go-lachesis/topicsdb"
 )
 
@@ -58,7 +60,7 @@ func BenchmarkFilters(b *testing.B) {
 
 	backend := newTestBackend()
 	backend.db = rawdb.NewTable(ldb, "a")
-	backend.logIndex = topicsdb.New(table.New(ldb, []byte("b")))
+	backend.logIndex = topicsdb.New(table.New(ethdb2kvdb.Wrap(ldb), []byte("b")))
 
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
