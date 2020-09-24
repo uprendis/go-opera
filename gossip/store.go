@@ -51,15 +51,18 @@ type Store struct {
 		// API-only
 		BlockHashes kvdb.Store `table:"B"`
 
-		LlrState           kvdb.Store `table:"S"`
-		LlrBlockResults    kvdb.Store `table:"R"`
-		LlrEpochResults    kvdb.Store `table:"Q"`
-		LlrBlockVotes      kvdb.Store `table:"T"`
-		LlrBlockVotesIndex kvdb.Store `table:"J"`
-		LlrEpochVotes      kvdb.Store `table:"E"`
-		LlrEpochVoteIndex  kvdb.Store `table:"I"`
-		LlrLastBlockVotes  kvdb.Store `table:"G"`
-		LlrLastEpochVote   kvdb.Store `table:"F"`
+		LlrState           kvdb.Store `table:"!"`
+		LlrBlockResults    kvdb.Store `table:"@"`
+		LlrEpochResults    kvdb.Store `table:"#"`
+		LlrBlockVotes      kvdb.Store `table:"$"`
+		LlrBlockVotesIndex kvdb.Store `table:"%"`
+		LlrEpochVotes      kvdb.Store `table:"^"`
+		LlrEpochVoteIndex  kvdb.Store `table:"&"`
+		LlrLastBlockVotes  kvdb.Store `table:"*"`
+		LlrLastEpochVote   kvdb.Store `table:"("`
+
+		DecisiveEvents  kvdb.Store `table:"8"`
+		EventLocalTimes kvdb.Store `table:"7"`
 	}
 
 	prevFlushTime time.Time

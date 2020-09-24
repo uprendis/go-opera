@@ -72,6 +72,7 @@ func (s *Service) GetConsensusCallbacks() lachesis.ConsensusCallbacks {
 			&s.feed,
 			&s.emitters,
 			s.verWatcher,
+			&s.currentEventProcessing,
 		),
 	}
 }
@@ -88,6 +89,7 @@ func consensusCallbackBeginBlockFn(
 	feed *ServiceFeed,
 	emitters *[]*emitter.Emitter,
 	verWatcher *verwatcher.VerWarcher,
+	currentEventProcessing *hash.Event,
 ) lachesis.BeginBlockFn {
 	return func(cBlock *lachesis.Block) lachesis.BlockCallbacks {
 		wg.Wait()
@@ -225,6 +227,9 @@ func consensusCallbackBeginBlockFn(
 					log.Debug("Frame is skipped", "atropos", cBlock.Atropos.String())
 					return nil
 				}
+
+				// Trace by which event this block was confirmed (only for API)
+				store.SetBlockDecidedBy(blockCtx.Idx, *currentEventProcessing)
 
 				sealer := blockProc.SealerModule.Start(blockCtx, bs, es)
 				sealing := sealer.EpochSealing()
