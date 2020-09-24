@@ -41,7 +41,9 @@ type Store struct {
 		Genesis    kvdb.Store `table:"g"`
 
 		// API-only
-		BlockHashes kvdb.Store `table:"B"`
+		BlockHashes     kvdb.Store `table:"B"`
+		DecisiveEvents  kvdb.Store `table:"8"`
+		EventLocalTimes kvdb.Store `table:"7"`
 	}
 
 	prevFlushTime time.Time

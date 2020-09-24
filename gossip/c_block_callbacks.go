@@ -36,6 +36,7 @@ func (s *Service) GetConsensusCallbacks() lachesis.ConsensusCallbacks {
 			s.config.TxIndex,
 			&s.feed,
 			s.emitter,
+			s.currentEventProcessing,
 			nil,
 		),
 	}
@@ -53,6 +54,7 @@ func consensusCallbackBeginBlockFn(
 	txIndex bool,
 	feed *ServiceFeed,
 	emitter *emitter.Emitter,
+	currentEventProcessing hash.Event,
 	onBlockEnd func(block *inter.Block, preInternalReceipts, internalReceipts, externalReceipts types.Receipts),
 ) lachesis.BeginBlockFn {
 	return func(cBlock *lachesis.Block) lachesis.BlockCallbacks {
@@ -75,6 +77,9 @@ func consensusCallbackBeginBlockFn(
 
 		var atropos inter.EventI
 		confirmedEvents := make(hash.OrderedEvents, 0, 3*es.Validators.Len())
+
+		// Trace by which event this block was confirmed (only for API)
+		store.SetBlockDecidedBy(bs.LastBlock, currentEventProcessing)
 
 		return lachesis.BlockCallbacks{
 			ApplyEvent: func(_e dag.Event) {

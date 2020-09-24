@@ -3,6 +3,7 @@ package gossip
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -92,6 +93,10 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	if e.MedianTime() != s.dagIndexer.MedianTime(e.ID(), s.store.GetEpochState().EpochStart)/inter.MinEventTime*inter.MinEventTime {
 		return errWrongMedianTime
 	}
+
+	// API-only indexes
+	s.store.SetEventReceivingTime(e.ID(), inter.Timestamp(time.Now().UnixNano()))
+	s.currentEventProcessing = e.ID()
 
 	// aBFT processing
 	err = s.engine.Process(e)

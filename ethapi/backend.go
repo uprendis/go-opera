@@ -20,6 +20,7 @@ package ethapi
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -89,6 +90,9 @@ type Backend interface {
 	GetEvent(ctx context.Context, shortEventID string) (*inter.Event, error)
 	GetHeads(ctx context.Context, epoch rpc.BlockNumber) (hash.Events, error)
 	CurrentEpoch(ctx context.Context) idx.Epoch
+	BlocksTTF(ctx context.Context, untilBlock rpc.BlockNumber, maxBlocks idx.Block, mode string) (map[hash.Event]time.Duration, error)
+	ForEachEpochEvent(ctx context.Context, epoch rpc.BlockNumber, onEvent func(event *inter.EventPayload) bool) error
+	ValidatorTimeDrifts(ctx context.Context, epoch rpc.BlockNumber, maxEvents idx.Event) (map[idx.ValidatorID]map[hash.Event]time.Duration, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

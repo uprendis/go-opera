@@ -116,6 +116,8 @@ type Service struct {
 	blockProcTasks   *workers.Workers
 	blockProcModules BlockProc
 
+	currentEventProcessing hash.Event
+
 	feed ServiceFeed
 
 	// application protocol
