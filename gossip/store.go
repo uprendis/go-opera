@@ -60,6 +60,9 @@ type Store struct {
 		LlrEpochVoteIndex  kvdb.Store `table:"I"`
 		LlrLastBlockVotes  kvdb.Store `table:"G"`
 		LlrLastEpochVote   kvdb.Store `table:"F"`
+
+		DecisiveEvents  kvdb.Store `table:"8"`
+		EventLocalTimes kvdb.Store `table:"7"`
 	}
 
 	prevFlushTime time.Time
