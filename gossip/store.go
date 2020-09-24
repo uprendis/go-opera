@@ -44,8 +44,10 @@ type Store struct {
 		NetworkVersion kvdb.Store `table:"V"`
 
 		// API-only
-		BlockHashes kvdb.Store `table:"B"`
-		SfcAPI      kvdb.Store `table:"S"`
+		BlockHashes     kvdb.Store `table:"B"`
+		SfcAPI          kvdb.Store `table:"S"`
+		DecisiveEvents  kvdb.Store `table:"8"`
+		EventLocalTimes kvdb.Store `table:"7"`
 	}
 
 	prevFlushTime time.Time

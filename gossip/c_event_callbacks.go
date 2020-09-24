@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 	"sync/atomic"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -132,6 +133,9 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 		}
 	}
 
+	// API-only indexes
+	s.store.SetEventReceivingTime(e.ID(), inter.Timestamp(time.Now().UnixNano()))
+	s.currentEventProcessing = e.ID()
 	err := s.saveAndProcessEvent(e, &es)
 	if err != nil {
 		return err

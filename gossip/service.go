@@ -137,6 +137,8 @@ type Service struct {
 	blockBusyFlag uint32
 	eventBusyFlag uint32
 
+	currentEventProcessing hash.Event
+
 	feed ServiceFeed
 
 	// application protocol
