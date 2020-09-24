@@ -49,8 +49,7 @@ type Store struct {
 		NetworkVersion kvdb.Store `table:"V"`
 
 		// API-only
-		BlockHashes kvdb.Store `table:"B"`
-
+		BlockHashes        kvdb.Store `table:"B"`
 		LlrState           kvdb.Store `table:"S"`
 		LlrBlockResults    kvdb.Store `table:"R"`
 		LlrEpochResults    kvdb.Store `table:"Q"`
@@ -60,6 +59,9 @@ type Store struct {
 		LlrEpochVoteIndex  kvdb.Store `table:"I"`
 		LlrLastBlockVotes  kvdb.Store `table:"G"`
 		LlrLastEpochVote   kvdb.Store `table:"F"`
+
+		DecisiveEvents  kvdb.Store `table:"8"`
+		EventLocalTimes kvdb.Store `table:"7"`
 	}
 
 	prevFlushTime time.Time
