@@ -1,6 +1,7 @@
 package gossip
 
 import (
+	"github.com/Fantom-foundation/go-opera/opera"
 	"sync/atomic"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -10,7 +11,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/eventcheck/gaspowercheck"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/validator"
-	"github.com/Fantom-foundation/go-opera/opera"
 )
 
 // GasPowerCheckReader is a helper to run gas power check

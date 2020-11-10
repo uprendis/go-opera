@@ -21,7 +21,7 @@ type (
 	}
 	// Config for the gossip service.
 	Config struct {
-		Net     opera.Config
+		Net     opera.Rules
 		Emitter emitter.Config
 		TxPool  evmcore.TxPoolConfig
 		StoreConfig
@@ -67,10 +67,10 @@ type (
 )
 
 // DefaultConfig returns the default configurations for the gossip service.
-func DefaultConfig(network opera.Config) Config {
+func DefaultConfig(network opera.Rules) Config {
 	cfg := Config{
 		Net:         network,
-		Emitter:     emitter.DefaultEmitterConfig(),
+		Emitter:     emitter.DefaultConfig(),
 		TxPool:      evmcore.DefaultTxPoolConfig(),
 		StoreConfig: DefaultStoreConfig(),
 
@@ -89,14 +89,13 @@ func DefaultConfig(network opera.Config) Config {
 		},
 	}
 
-	if network.NetworkID == opera.FakeNetworkID {
-		cfg.Emitter = emitter.FakeEmitterConfig(len(network.Genesis.Alloc.Validators))
-	}
-	/*if network.NetworkId == opera.DevNetworkId { // TODO dev network
-		cfg.TxPool = evmcore.FakeTxPoolConfig()
-		cfg.Emitter = FakeEmitterConfig()
-	}*/
+	return cfg
+}
 
+// FakeConfig returns the default configurations for the gossip service in fakenet.
+func FakeConfig(network opera.Rules, num int) Config {
+	cfg := DefaultConfig(network)
+	cfg.Emitter = emitter.FakeConfig(num)
 	return cfg
 }
 

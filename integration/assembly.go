@@ -3,6 +3,7 @@ package integration
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/opera"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -44,9 +45,7 @@ func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 }
 
 // MakeEngine makes consensus engine from config.
-func MakeEngine(dataDir string, gossipCfg *gossip.Config) (*abft.Lachesis, *vecmt.Index, *flushable.SyncedPool, *gossip.Store, gossip.BlockProc) {
-	dbs := flushable.NewSyncedPool(DBProducer(dataDir))
-
+func MakeEngine(dbs *flushable.SyncedPool, gossipCfg *gossip.Config, g opera.Genesis) (*abft.Lachesis, *vecmt.Index, *gossip.Store, gossip.BlockProc) {
 	gdb := gossip.NewStore(dbs, gossipCfg.StoreConfig)
 
 	cMainDb := dbs.GetDb("opera")
@@ -60,7 +59,7 @@ func MakeEngine(dataDir string, gossipCfg *gossip.Config) (*abft.Lachesis, *vecm
 	blockProc := gossip.BlockProc{
 		SealerModule:        sealmodule.New(gossipCfg.Net),
 		TxListenerModule:    sfcmodule.NewSfcTxListenerModule(gossipCfg.Net),
-		GenesisTxTransactor: sfcmodule.NewSfcTxGenesisTransactor(gossipCfg.Net),
+		GenesisTxTransactor: sfcmodule.NewSfcTxGenesisTransactor(g),
 		PreTxTransactor:     sfcmodule.NewSfcTxPreTransactor(gossipCfg.Net),
 		PostTxTransactor:    sfcmodule.NewSfcTxTransactor(gossipCfg.Net),
 		EventsModule:        eventmodule.New(gossipCfg.Net),
@@ -71,7 +70,7 @@ func MakeEngine(dataDir string, gossipCfg *gossip.Config) (*abft.Lachesis, *vecm
 	if err != nil {
 		utils.Fatalf("Failed to migrate Gossip DB: %v", err)
 	}
-	genesisAtropos, isNew, err := gdb.ApplyGenesis(blockProc, &gossipCfg.Net)
+	genesisAtropos, isNew, err := gdb.ApplyGenesis(blockProc, g)
 	if err != nil {
 		utils.Fatalf("Failed to write Gossip genesis state: %v", err)
 	}
@@ -79,7 +78,7 @@ func MakeEngine(dataDir string, gossipCfg *gossip.Config) (*abft.Lachesis, *vecm
 	if isNew {
 		err = cdb.ApplyGenesis(&abft.Genesis{
 			Epoch:      gdb.GetEpoch(),
-			Validators: gossipCfg.Net.Genesis.Alloc.Validators.Build(),
+			Validators: gdb.GetValidators(),
 			Atropos:    genesisAtropos,
 		})
 		if err != nil {
@@ -102,7 +101,7 @@ func MakeEngine(dataDir string, gossipCfg *gossip.Config) (*abft.Lachesis, *vecm
 	vecClock := vecmt.NewIndex(panics("Vector clock"), vecmt.DefaultConfig())
 	engine := abft.NewLachesis(cdb, &GossipStoreAdapter{gdb}, vecmt2dagidx.Wrap(vecClock), panics("Lachesis"), abft.DefaultConfig())
 
-	return engine, vecClock, dbs, gdb, blockProc
+	return engine, vecClock, gdb, blockProc
 }
 
 // SetAccountKey sets key into accounts manager and unlocks it with pswd.

@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -12,8 +13,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/params"
-
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
 
 const (
@@ -141,7 +140,7 @@ func trulyRandInt(lo, hi int) int {
 }
 
 func genesisStart() string {
-	g := genesis.MainGenesis()
+	g := opera.MainGenesis()
 	s := g.Time.Unix()
 	return time.Unix(s, 0).Format(time.RFC1123)
 }

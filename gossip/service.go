@@ -164,7 +164,7 @@ func NewService(ctx *node.ServiceContext, config *Config, store *Store, signer v
 	// create checkers
 	svc.heavyCheckReader.Addrs.Store(NewEpochPubKeys(svc.store, svc.store.GetEpoch()))                                                         // read pub keys of current epoch from disk
 	svc.gasPowerCheckReader.Ctx.Store(NewGasPowerContext(svc.store, svc.store.GetValidators(), svc.store.GetEpoch(), &svc.config.Net.Economy)) // read gaspower check data from disk
-	svc.checkers = makeCheckers(&svc.config.Net, &svc.heavyCheckReader, &svc.gasPowerCheckReader, svc.store)
+	svc.checkers = makeCheckers(svc.config.Net, &svc.heavyCheckReader, &svc.gasPowerCheckReader, svc.store)
 
 	// create protocol manager
 	var err error
@@ -187,7 +187,7 @@ func NewService(ctx *node.ServiceContext, config *Config, store *Store, signer v
 }
 
 // makeCheckers builds event checkers
-func makeCheckers(net *opera.Config, heavyCheckReader *HeavyCheckReader, gasPowerCheckReader *GasPowerCheckReader, store *Store) *eventcheck.Checkers {
+func makeCheckers(net opera.Rules, heavyCheckReader *HeavyCheckReader, gasPowerCheckReader *GasPowerCheckReader, store *Store) *eventcheck.Checkers {
 	// create signatures checker
 	ledgerID := net.EvmChainConfig().ChainID
 	heavyCheck := heavycheck.NewDefault(&net.Dag, heavyCheckReader, types.NewEIP155Signer(ledgerID))
@@ -210,7 +210,7 @@ func (s *Service) makeEmitter(signer valkeystore.SignerI) *emitter.Emitter {
 	emitterCfg := s.config.Emitter // copy data
 	emitterCfg.EmitIntervals = *emitterCfg.EmitIntervals.RandomizeEmitTime(r)
 
-	return emitter.NewEmitter(&s.config.Net, &emitterCfg,
+	return emitter.NewEmitter(s.config.Net, &emitterCfg,
 		emitter.EmitterWorld{
 			Store:       s.store,
 			EngineMu:    s.engineMu,

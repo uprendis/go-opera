@@ -149,9 +149,9 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 
 	// Generate a chain of b.N blocks using the supplied block
 	// generator function.
-	net := &opera.Config{
+	net := &opera.Rules{
 		Dag: opera.FakeNetDagConfig(),
-		Genesis: genesis.Genesis{
+		Genesis: opera.GenesisState{
 			Alloc: genesis.VAccounts{Accounts: genesis.Accounts{benchRootAddr: {Balance: benchRootFunds}}},
 		},
 	}

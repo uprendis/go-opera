@@ -2,6 +2,7 @@ package heavycheck
 
 import (
 	"errors"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"runtime"
 	"sync"
 
@@ -14,7 +15,6 @@ import (
 
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/validator"
-	"github.com/Fantom-foundation/go-opera/opera"
 )
 
 var (

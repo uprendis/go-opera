@@ -17,6 +17,7 @@
 package evmcore
 
 import (
+	"github.com/Fantom-foundation/go-opera/opera/rules"
 	"math/big"
 	"testing"
 
@@ -27,7 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/kvdb2ethdb"
 )
@@ -55,7 +55,7 @@ func TestApplyGenesis(t *testing.T) {
 
 	// the same genesis
 	accsA := genesis.FakeValidators(3, big.NewInt(10000000000), big.NewInt(1))
-	netA := opera.FakeNetConfig(accsA)
+	netA := rules.FakeNetConfig(accsA)
 	blockA1, err := ApplyGenesis(db1, &netA)
 	if !assertar.NoError(err) {
 		return
@@ -70,7 +70,7 @@ func TestApplyGenesis(t *testing.T) {
 
 	// different genesis
 	accsB := genesis.FakeValidators(4, big.NewInt(10000000000), big.NewInt(1))
-	netB := opera.FakeNetConfig(accsB)
+	netB := rules.FakeNetConfig(accsB)
 	blockB, err := ApplyGenesis(db2, &netB)
 	if !assertar.NotEqual(blockA1, blockB) {
 		return

@@ -3,21 +3,25 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/integration"
 	"strconv"
 	"strings"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/log"
 	cli "gopkg.in/urfave/cli.v1"
-
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
-	"github.com/Fantom-foundation/go-opera/utils"
 )
 
 // FakeNetFlag enables special testnet, where validators are automatically created
 var FakeNetFlag = cli.StringFlag{
 	Name:  "fakenet",
 	Usage: "'n/N[,non-validators]' - sets coinbase as fake n-th key from genesis of N validators. Non-validators is a count or json-file.",
+}
+
+// FakeNetFlag enables special testnet, where validators are automatically created
+var GenesisFlag = cli.StringFlag{
+	Name:  "genesis",
+	Usage: "'path to genesis file' - sets the network genesis configuration.",
 }
 
 func getFakeValidatorKey(ctx *cli.Context) *ecdsa.PrivateKey {
@@ -30,7 +34,7 @@ func getFakeValidatorKey(ctx *cli.Context) *ecdsa.PrivateKey {
 		return nil
 	}
 
-	return genesis.FakeKey(int(num))
+	return integration.FakeKey(int(num))
 }
 
 func parseFakeGen(s string) (id idx.ValidatorID, num int, err error) {
@@ -57,8 +61,4 @@ func parseFakeGen(s string) (id idx.ValidatorID, num int, err error) {
 	}
 
 	return
-}
-
-func getFakeValidators(num int) genesis.VAccounts {
-	return genesis.FakeValidators(num, utils.ToFtm(1000000000), utils.ToFtm(5000000))
 }

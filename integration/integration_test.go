@@ -15,9 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/simulations"
 	"github.com/ethereum/go-ethereum/p2p/simulations/adapters"
-
-	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
 
 type topology func(net *simulations.Network, nodes []enode.ID)
@@ -41,12 +38,13 @@ func testSim(t *testing.T, connect topology) {
 		log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
 
 	// fake net
-	network := opera.FakeNetConfig(genesis.FakeValidators(count, big.NewInt(0), big.NewInt(10000)))
+	genesisStore := FakeGenesisStore(count, big.NewInt(0), big.NewInt(10000))
+	genesis := genesisStore.GetGenesis()
 
 	// register a single gossip service
 	services := map[string]adapters.ServiceFunc{
 		"gossip": func(ctx *adapters.ServiceContext) (node.Service, error) {
-			g := NewIntegration(ctx, network)
+			g := NewIntegration(ctx, genesis)
 			return g, nil
 		},
 	}
@@ -65,9 +63,8 @@ func testSim(t *testing.T, connect topology) {
 
 	// create and start nodes
 	nodes := make([]enode.ID, count)
-	addrs := network.Genesis.Alloc.Validators.Addresses()
-	for i, addr := range addrs {
-		key := network.Genesis.Alloc.Accounts[addr].PrivateKey
+	for i, val := range genesis.State.Validators {
+		key := FakeKey(int(val.ID))
 		id := enode.PubkeyToIDV4(&key.PublicKey)
 		config := &adapters.NodeConfig{
 			ID:         id,

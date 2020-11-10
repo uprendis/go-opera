@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Fantom-foundation/go-opera/integration"
 	"github.com/pkg/errors"
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -41,8 +42,8 @@ func setValidator(ctx *cli.Context, cfg *emitter.Config) error {
 		if err != nil {
 			return err
 		}
-		vaccs := getFakeValidators(num)
-		validatorPubkey = vaccs.Validators.Map()[validatorID].PubKey
+		validators := integration.GetFakeValidators(num)
+		validatorPubkey = validators.Map()[validatorID].PubKey
 	}
 	if ctx.GlobalIsSet(validatorIDFlag.Name) {
 		validatorID = idx.ValidatorID(ctx.GlobalInt(validatorIDFlag.Name))

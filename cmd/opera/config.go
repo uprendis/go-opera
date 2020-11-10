@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -22,6 +24,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/gasprice"
 	"github.com/Fantom-foundation/go-opera/opera"
+	futils "github.com/Fantom-foundation/go-opera/utils"
 )
 
 var (
@@ -71,6 +74,7 @@ var tomlSettings = toml.Config{
 type config struct {
 	Node     node.Config
 	Lachesis gossip.Config
+	Genesis  opera.Genesis
 }
 
 func loadAllConfigs(file string, cfg *config) error {
@@ -93,23 +97,26 @@ func loadAllConfigs(file string, cfg *config) error {
 	return err
 }
 
-func defaultLachesisConfig(ctx *cli.Context) opera.Config {
-	var cfg opera.Config
-
+func getOperaGenesis(ctx *cli.Context) opera.Genesis {
+	var genesisStore *genesisstore.Store
 	switch {
 	case ctx.GlobalIsSet(FakeNetFlag.Name):
 		_, num, err := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
 		if err != nil {
 			log.Crit("Invalid flag", "flag", FakeNetFlag.Name, "err", err)
 		}
-		cfg = opera.FakeNetConfig(getFakeValidators(num))
-	case ctx.GlobalBool(utils.TestnetFlag.Name):
-		cfg = opera.TestNetConfig()
+		genesisStore = integration.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
+	case ctx.GlobalIsSet(GenesisFlag.Name):
+		path := ctx.GlobalString(GenesisFlag.Name)
+		var err error
+		genesisStore, err = integration.OpenGenesis(path)
+		if err != nil {
+			log.Crit("Genesis reading error", "path", path, "err", err)
+		}
 	default:
-		cfg = opera.MainNetConfig()
+		log.Crit("Network genesis is not specified")
 	}
-
-	return cfg
+	return genesisStore.GetGenesis()
 }
 
 func setDataDir(ctx *cli.Context, cfg *node.Config) {
@@ -236,8 +243,13 @@ func nodeConfigWithFlags(ctx *cli.Context, cfg node.Config) node.Config {
 
 func makeAllConfigs(ctx *cli.Context) *config {
 	// Defaults (low priority)
-	net := defaultLachesisConfig(ctx)
-	cfg := config{Lachesis: gossip.DefaultConfig(net), Node: defaultNodeConfig()}
+	genesis := getOperaGenesis(ctx)
+
+	cfg := config{Lachesis: gossip.DefaultConfig(genesis.Rules), Node: defaultNodeConfig()}
+	if ctx.GlobalIsSet(FakeNetFlag.Name) {
+		_, num, _ := parseFakeGen(ctx.GlobalString(FakeNetFlag.Name))
+		cfg.Lachesis = gossip.FakeConfig(genesis.Rules, num)
+	}
 
 	// Load config file (medium priority)
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
@@ -249,6 +261,7 @@ func makeAllConfigs(ctx *cli.Context) *config {
 	// Apply flags (high priority)
 	cfg.Lachesis = gossipConfigWithFlags(ctx, cfg.Lachesis)
 	cfg.Node = nodeConfigWithFlags(ctx, cfg.Node)
+	cfg.Genesis = genesis
 
 	return &cfg
 }

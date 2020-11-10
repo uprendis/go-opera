@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"time"
 
 	"github.com/Fantom-foundation/go-opera/inter/validator"
@@ -14,10 +15,11 @@ import (
 )
 
 // NewIntegration creates gossip service for the integration test
-func NewIntegration(ctx *adapters.ServiceContext, network opera.Config) *gossip.Service {
-	gossipCfg := gossip.DefaultConfig(network)
+func NewIntegration(ctx *adapters.ServiceContext, genesis opera.Genesis) *gossip.Service {
+	gossipCfg := gossip.FakeConfig(genesis.Rules, len(genesis.State.Validators))
 
-	engine, dagIndex, _, gdb, blockProc := MakeEngine(ctx.Config.DataDir, &gossipCfg)
+	dbs := flushable.NewSyncedPool(DBProducer(ctx.Config.DataDir))
+	engine, dagIndex, gdb, blockProc := MakeEngine(dbs, &gossipCfg, genesis)
 
 	valKeystore := valkeystore.NewDefaultMemKeystore()
 
@@ -32,7 +34,7 @@ func NewIntegration(ctx *adapters.ServiceContext, network opera.Config) *gossip.
 	signer := valkeystore.NewSigner(valKeystore)
 
 	// find a genesis validator which corresponds to the key
-	for _, v := range network.Genesis.Alloc.Validators {
+	for _, v := range genesis.State.Validators {
 		if v.PubKey.String() == pubKey.String() {
 			gossipCfg.Emitter.Validator.ID = v.ID
 			gossipCfg.Emitter.Validator.PubKey = v.PubKey

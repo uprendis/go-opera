@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"os"
 	"path"
 	"sort"
@@ -60,6 +61,7 @@ func init() {
 
 	// Flags that configure the node.
 	nodeFlags = []cli.Flag{
+		GenesisFlag,
 		utils.IdentityFlag,
 		utils.UnlockedAccountFlag,
 		utils.PasswordFileFlag,
@@ -239,7 +241,8 @@ func makeNode(ctx *cli.Context, cfg *config) *node.Node {
 
 	stack := makeConfigNode(ctx, &cfg.Node)
 
-	engine, dagIndex, _, gdb, blockProc := integration.MakeEngine(cfg.Node.DataDir, &cfg.Lachesis)
+	dbs := flushable.NewSyncedPool(integration.DBProducer(cfg.Node.DataDir))
+	engine, dagIndex, gdb, blockProc := integration.MakeEngine(dbs, &cfg.Lachesis, cfg.Genesis)
 	metrics.SetDataDir(cfg.Node.DataDir)
 
 	// configure emitter

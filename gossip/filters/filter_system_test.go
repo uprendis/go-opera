@@ -18,6 +18,7 @@ package filters
 
 import (
 	"context"
+	"github.com/Fantom-foundation/go-opera/opera/rules"
 	"math/big"
 	"reflect"
 	"testing"
@@ -35,7 +36,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
-	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/topicsdb"
 )
@@ -147,7 +147,7 @@ func TestBlockSubscription(t *testing.T) {
 		backend = newTestBackend()
 		api     = NewPublicFilterAPI(backend)
 
-		net         = opera.FakeNetConfig(genesis.FakeValidators(5, big.NewInt(0), big.NewInt(1)))
+		net         = rules.FakeNetConfig(genesis.FakeValidators(5, big.NewInt(0), big.NewInt(1)))
 		genesis     = evmcore.MustApplyGenesis(&net, backend.db)
 		chain, _, _ = evmcore.GenerateChain(
 			params.TestChainConfig, genesis, backend.db, 10, nil)
