@@ -12,14 +12,14 @@ func dbCacheSize(name string) int {
 	if name == "gossip" {
 		return 64 * opt.MiB
 	}
-	if name == "lachesis" {
-		return 4 * opt.MiB
-	}
 	if strings.HasPrefix(name, "lachesis-") {
 		return 8 * opt.MiB
 	}
 	if strings.HasPrefix(name, "gossip-") {
 		return 8 * opt.MiB
+	}
+	if name == "lachesis" {
+		return 4 * opt.MiB
 	}
 	return 2 * opt.MiB
 }

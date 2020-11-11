@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"strconv"
 	"strings"
 
@@ -34,7 +34,7 @@ func getFakeValidatorKey(ctx *cli.Context) *ecdsa.PrivateKey {
 		return nil
 	}
 
-	return integration.FakeKey(int(num))
+	return makegenesis.FakeKey(int(num))
 }
 
 func parseFakeGen(s string) (id idx.ValidatorID, num int, err error) {

@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"math/big"
 	"net/http"
 	"os"
@@ -38,7 +39,7 @@ func testSim(t *testing.T, connect topology) {
 		log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
 
 	// fake net
-	genesisStore := FakeGenesisStore(count, big.NewInt(0), big.NewInt(10000))
+	genesisStore := makegenesis.FakeGenesisStore(count, big.NewInt(0), big.NewInt(10000))
 	genesis := genesisStore.GetGenesis()
 
 	// register a single gossip service
@@ -64,7 +65,7 @@ func testSim(t *testing.T, connect topology) {
 	// create and start nodes
 	nodes := make([]enode.ID, count)
 	for i, val := range genesis.State.Validators {
-		key := FakeKey(int(val.ID))
+		key := makegenesis.FakeKey(int(val.ID))
 		id := enode.PubkeyToIDV4(&key.PublicKey)
 		config := &adapters.NodeConfig{
 			ID:         id,

@@ -88,7 +88,8 @@ func (s *Store) applyEpoch0Genesis(g opera.Genesis) (evmBlock *evmcore.EvmBlock,
 		}
 		gasUsed := uint64(0)
 		if len(block.Receipts) != 0 {
-			gasUsed = block.Receipts[len(block.Receipts) - 1].GasUsed
+			gasUsed = block.Receipts[len(block.Receipts) - 1].CumulativeGasUsed
+			s.evm.SetRawReceipts(index, block.Receipts)
 		}
 
 		s.SetBlock(index, &inter.Block{
@@ -101,7 +102,6 @@ func (s *Store) applyEpoch0Genesis(g opera.Genesis) (evmBlock *evmcore.EvmBlock,
 			GasUsed:     gasUsed,
 			Root:        block.Root,
 		})
-		s.evm.SetRawReceipts(index, block.Receipts)
 		highestBlock = index
 	})
 

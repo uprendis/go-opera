@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"github.com/pkg/errors"
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -42,7 +42,7 @@ func setValidator(ctx *cli.Context, cfg *emitter.Config) error {
 		if err != nil {
 			return err
 		}
-		validators := integration.GetFakeValidators(num)
+		validators := makegenesis.GetFakeValidators(num)
 		validatorPubkey = validators.Map()[validatorID].PubKey
 	}
 	if ctx.GlobalIsSet(validatorIDFlag.Name) {

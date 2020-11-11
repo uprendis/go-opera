@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"math/big"
 	"os"
@@ -105,11 +105,11 @@ func getOperaGenesis(ctx *cli.Context) opera.Genesis {
 		if err != nil {
 			log.Crit("Invalid flag", "flag", FakeNetFlag.Name, "err", err)
 		}
-		genesisStore = integration.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
+		genesisStore = makegenesis.FakeGenesisStore(num, futils.ToFtm(1000000000), futils.ToFtm(5000000))
 	case ctx.GlobalIsSet(GenesisFlag.Name):
 		path := ctx.GlobalString(GenesisFlag.Name)
 		var err error
-		genesisStore, err = integration.OpenGenesis(path)
+		genesisStore, err = makegenesis.OpenGenesis(path)
 		if err != nil {
 			log.Crit("Genesis reading error", "path", path, "err", err)
 		}

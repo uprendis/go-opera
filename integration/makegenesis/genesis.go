@@ -1,4 +1,4 @@
-package integration
+package makegenesis
 
 import (
 	"crypto/ecdsa"
@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	fakeGenesisTime = inter.Timestamp(1577419000 * time.Second)
+	FakeGenesisTime = inter.Timestamp(1577419000 * time.Second)
 )
 
 func OpenGenesis(path string) (*genesisstore.Store, error) {
@@ -71,7 +71,7 @@ func FakeGenesisStore(num int, balance, stake *big.Int) *genesisstore.Store {
 	genStore.SetMetadata(genesisstore.Metadata{
 		Validators: validators,
 		FirstEpoch: 1,
-		Time:       fakeGenesisTime,
+		Time:       FakeGenesisTime,
 		ExtraData:  []byte("fake"),
 	})
 	preDeploySfc(admin, sfc.ContractAddress, sfc.ContractAddressV1, proxy.GetContractBin(), sfc.GetContractBin(), genStore)

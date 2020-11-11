@@ -18,6 +18,7 @@ package evmcore
 
 import (
 	"crypto/ecdsa"
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -30,9 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
-
-	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -149,14 +147,9 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 
 	// Generate a chain of b.N blocks using the supplied block
 	// generator function.
-	net := &opera.Rules{
-		Dag: opera.FakeNetDagConfig(),
-		Genesis: opera.GenesisState{
-			Alloc: genesis.VAccounts{Accounts: genesis.Accounts{benchRootAddr: {Balance: benchRootFunds}}},
-		},
-	}
+	net := makegenesis.FakeGenesisStore(5, big.NewInt(0), big.NewInt(1)).GetGenesis()
 
-	genesisBlock := MustApplyGenesis(net, db)
+	genesisBlock := MustApplyGenesis(net.State, db)
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.

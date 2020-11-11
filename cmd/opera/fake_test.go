@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/Fantom-foundation/go-opera/inter/validator"
-	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
 
 func TestFakeNetFlag_NonValidator(t *testing.T) {
@@ -112,7 +112,7 @@ func readFakeValidator(fakenet string) *validator.PubKey {
 	}
 
 	return &validator.PubKey{
-		Raw:  crypto.FromECDSAPub(&genesis.FakeKey(int(n)).PublicKey),
+		Raw:  crypto.FromECDSAPub(&makegenesis.FakeKey(int(n)).PublicKey),
 		Type: "secp256k1",
 	}
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"crypto/rand"
-	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/integration/makegenesis"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -25,7 +25,7 @@ const (
 func TestConsoleWelcome(t *testing.T) {
 	// Start a opera console, make sure it's cleaned up and terminate the console
 	cli := exec(t,
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"console")
 
 	// Gather all the infos the welcome message needs to contain
@@ -63,7 +63,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 		ipc = filepath.Join(ws, "opera.ipc")
 	}
 	cli := exec(t,
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--ipcpath", ipc)
 
 	waitForEndpoint(t, ipc, 10*time.Second)
@@ -76,7 +76,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 func TestHTTPAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 	cli := exec(t,
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--rpc", "--rpcport", port)
 
 	endpoint := "http://127.0.0.1:" + port
@@ -91,7 +91,7 @@ func TestWSAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 
 	cli := exec(t,
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--fakenet", "0/1", "--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--ws", "--wsport", port)
 
 	endpoint := "ws://127.0.0.1:" + port
@@ -140,7 +140,5 @@ func trulyRandInt(lo, hi int) int {
 }
 
 func genesisStart() string {
-	g := opera.MainGenesis()
-	s := g.Time.Unix()
-	return time.Unix(s, 0).Format(time.RFC1123)
+	return time.Unix(makegenesis.FakeGenesisTime.Unix(), 0).Format(time.RFC1123)
 }

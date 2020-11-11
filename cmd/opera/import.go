@@ -27,7 +27,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
-func importChain(ctx *cli.Context) error {
+func importEvents(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
@@ -66,17 +66,9 @@ func importToNode(ctx *cli.Context, cfg *config, args ...string) error {
 		return err
 	}
 
-	check := true
-	for _, arg := range ctx.Args() {
-		if arg == "check=false" || arg == "check=0" {
-			check = false
-		}
-	}
+	check := ctx.BoolT(EventsCheckFlag.Name)
 
 	for _, fn := range args {
-		if strings.HasPrefix(fn, "check=") {
-			continue
-		}
 		if err := importFile(srv, check, fn); err != nil {
 			log.Error("Import error", "file", fn, "err", err)
 			return err
