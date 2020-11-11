@@ -48,9 +48,9 @@ func (g *GossipStoreAdapter) GetEvent(id hash.Event) dag.Event {
 func MakeEngine(dbs *flushable.SyncedPool, gossipCfg *gossip.Config, g opera.Genesis) (*abft.Lachesis, *vecmt.Index, *gossip.Store, gossip.BlockProc) {
 	gdb := gossip.NewStore(dbs, gossipCfg.StoreConfig)
 
-	cMainDb := dbs.GetDb("opera")
+	cMainDb := dbs.GetDb("lachesis")
 	cGetEpochDB := func(epoch idx.Epoch) kvdb.DropableStore {
-		return dbs.GetDb(fmt.Sprintf("opera-%d", epoch))
+		return dbs.GetDb(fmt.Sprintf("lachesis-%d", epoch))
 	}
 	cdb := abft.NewStore(cMainDb, cGetEpochDB, panics("Lachesis store"), abft.DefaultStoreConfig())
 

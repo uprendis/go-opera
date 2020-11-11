@@ -290,7 +290,7 @@ func (em *Emitter) findBestParents(epoch idx.Epoch, myValidatorID idx.ValidatorI
 	if maxParents > em.net.Dag.MaxParents {
 		maxParents = em.net.Dag.MaxParents
 	}
-	_, parents := ancestor.FindBestParents(int(maxParents), heads, selfParent, strategy)
+	_, parents := ancestor.FindBestParents(maxParents, heads, selfParent, strategy)
 	return selfParent, parents, true
 }
 
