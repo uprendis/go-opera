@@ -107,10 +107,10 @@ func (v *Checker) Enqueue(events dag.Events, onValidated func(dag.Events, []erro
 			onValidated: onValidated,
 		}
 		select {
-		case v.tasksQ <- op:
-			continue
 		case <-v.quit:
 			return errTerminated
+		case v.tasksQ <- op:
+			continue
 		}
 	}
 	return nil

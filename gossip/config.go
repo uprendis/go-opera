@@ -62,8 +62,6 @@ type (
 		// Cache size for Blocks.
 		BlocksNum  int
 		BlocksSize uint
-		// Cache size for PackInfos.
-		PackInfosNum int
 	}
 
 	// StoreConfig is a config for store db.
@@ -87,6 +85,8 @@ func DefaultConfig() Config {
 			LatencyImportance:    60,
 			ThroughputImportance: 40,
 			EventsBufferBytes:    6 * opt.MiB,
+			// Ideally, has to be greater than ParallelChunksDownload * DefaultChunkSize, but not necessarily
+			// Shouldn't be too big because complexity is O(n) for each insertion in the EventsBuffer
 			EventsBufferNum:      3000,
 		},
 
@@ -116,7 +116,6 @@ func DefaultStoreConfig() StoreConfig {
 			EventsHeadersNum: 5000,
 			BlocksNum:        1000,
 			BlocksSize:       512 * opt.KiB,
-			PackInfosNum:     100,
 		},
 		EVM: evmstore.DefaultStoreConfig(),
 	}
@@ -131,7 +130,6 @@ func LiteStoreConfig() StoreConfig {
 			EventsHeadersNum: 500,
 			BlocksNum:        100,
 			BlocksSize:       50 * opt.KiB,
-			PackInfosNum:     10,
 		},
 		EVM: evmstore.LiteStoreConfig(),
 	}

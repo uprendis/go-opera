@@ -1,15 +1,19 @@
 package gossip
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/gossip/essteam"
+	"github.com/Fantom-foundation/go-opera/gossip/essteam/streamleecher"
+	"github.com/Fantom-foundation/go-opera/gossip/essteam/streamseeder"
+
 	"github.com/Fantom-foundation/lachesis-base/gossip/fetcher"
 	"github.com/Fantom-foundation/lachesis-base/gossip/ordering"
-	"github.com/Fantom-foundation/lachesis-base/gossip/packsdownloader"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
@@ -74,10 +78,11 @@ type ProtocolManager struct {
 	txsCh  chan evmcore.NewTxsNotify
 	txsSub notify.Subscription
 
-	downloader *packsdownloader.PacksDownloader
-	fetcher    *fetcher.Fetcher
-	buffer     *ordering.EventsBuffer
-	checkers   *eventcheck.Checkers
+	leecher  *streamleecher.Leecher
+	seeder   *streamseeder.Seeder
+	fetcher  *fetcher.Fetcher
+	buffer   *ordering.EventsBuffer
+	checkers *eventcheck.Checkers
 
 	store        *Store
 	processEvent func(*inter.EventPayload) error
@@ -146,13 +151,38 @@ func NewProtocolManager(
 	pm.SetName("PM")
 
 	pm.fetcher, pm.buffer = pm.makeFetcher(checkers)
-	pm.downloader = packsdownloader.New(pm.fetcher, pm.onlyNotConnectedEvents, pm.peerMisbehaviour, packsdownloader.DefaultConfig())
+	// TODO default config
+	pm.leecher = streamleecher.New(pm.store.GetEpoch(), false, streamleecher.DefaultConfig(), streamleecher.Callbacks{
+		OnlyNotConnected: pm.onlyNotConnectedEvents,
+		RequestChunk: func(peer string, r essteam.Request) error {
+			p := pm.peers.Peer(peer)
+			if p == nil {
+				return errNotRegistered
+			}
+			return p.RequestEventsStream(r)
+		},
+		Suspend: pm.fetcher.OverloadedPeer,
+		PeerEpoch: func(peer string) idx.Epoch {
+			p := pm.peers.Peer(peer)
+			if p == nil {
+				return 0
+			}
+			return p.progress.Epoch
+		},
+	})
+	pm.seeder = streamseeder.New(streamseeder.DefaultConfig(), streamseeder.Callbacks{
+		ForEachEvent: func(start []byte, onEvent func(key hash.Event, event interface{}, size uint64) bool) {
+			s.ForEachEventRLP(start, func(key hash.Event, event rlp.RawValue) bool {
+				return onEvent(key, event, uint64(len(event)))
+			})
+		},
+	})
 
 	return pm, nil
 }
 
 func (pm *ProtocolManager) peerMisbehaviour(peer string, err error) bool {
-	if eventcheck.IsBan(err) && err != packsdownloader.ErrAllUnknownBeforeKnown {
+	if eventcheck.IsBan(err) {
 		log.Warn("Dropping peer due to a misbehaviour", "peer", peer, "err", err)
 		pm.removePeer(peer)
 		return true
@@ -336,8 +366,9 @@ func (pm *ProtocolManager) removePeer(id string) {
 	}
 	log.Debug("Removing peer", "peer", id)
 
-	// Unregister the peer from the downloader and peer set
-	_ = pm.downloader.UnregisterPeer(id)
+	// Unregister the peer from the leecher's and seeder's and peer sets
+	_ = pm.leecher.UnregisterPeer(id)
+	_ = pm.seeder.UnregisterPeer(id)
 	if err := pm.peers.Unregister(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
 	}
@@ -379,14 +410,17 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	go pm.txsyncLoop()
 	pm.fetcher.Start()
 	pm.checkers.Heavycheck.Start()
+	pm.leecher.Start()
+	pm.seeder.Start()
 }
 
 func (pm *ProtocolManager) Stop() {
 	log.Info("Stopping Fantom protocol")
 
 	pm.checkers.Heavycheck.Stop()
-	pm.downloader.Terminate()
 	pm.fetcher.Stop()
+	pm.leecher.Stop()
+	pm.seeder.Stop()
 
 	pm.txsSub.Unsubscribe() // quits txBroadcastLoop
 	if pm.notifier != nil {
@@ -423,10 +457,9 @@ func (pm *ProtocolManager) myProgress() PeerProgress {
 	block := pm.store.GetBlock(blockI).Atropos
 	epoch := pm.store.GetEpoch()
 	return PeerProgress{
-		Epoch:        epoch,
-		NumOfBlocks:  blockI,
-		LastBlock:    block,
-		LastPackInfo: pm.store.GetPackInfoOrDefault(epoch, pm.store.GetPacksNumOrDefault(epoch)-1),
+		Epoch:       epoch,
+		NumOfBlocks: blockI,
+		LastBlock:   block,
 	}
 }
 
@@ -467,6 +500,10 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		p.Log().Warn("Peer registration failed", "err", err)
 		return err
 	}
+	if err := pm.leecher.RegisterPeer(p.id); err != nil {
+		p.Log().Warn("Leecher peer registration failed", "err", err)
+		return err
+	}
 	defer pm.removePeer(p.id)
 
 	// Propagate existing transactions. new transactions appearing
@@ -480,6 +517,24 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			return err
 		}
 	}
+}
+
+func (pm *ProtocolManager) handleHashes(p *peer, announces hash.Events) {
+	// Mark the hashes as present at the remote node
+	for _, id := range announces {
+		p.MarkEvent(id)
+	}
+	// Schedule all the unknown hashes for retrieval
+	_ = pm.fetcher.Notify(p.id, announces, time.Now(), p.RequestEvents)
+}
+
+func (pm *ProtocolManager) handleEvents(p *peer, events dag.Events) {
+	// Mark the hashes as present at the remote node
+	for _, e := range events {
+		p.MarkEvent(e.ID())
+	}
+	// Schedule all the events for connection
+	_ = pm.fetcher.Enqueue(p.id, events, time.Now(), p.RequestEvents)
 }
 
 // handleMsg is invoked whenever an inbound message is received from a remote
@@ -496,7 +551,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	defer msg.Discard()
 
 	myEpoch := pm.store.GetEpoch()
-	peerDwnlr := pm.downloader.Peer(p.id)
 
 	// Handle the message depending on its contents
 	switch {
@@ -514,19 +568,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			atomic.StoreUint32(&pm.synced, 1) // Mark initial sync done on any peer which has the same epoch
 		}
 
-		// notify downloader about new peer's epoch
-		_ = pm.downloader.RegisterPeer(packsdownloader.Peer{
-			ID:               p.id,
-			Epoch:            p.progress.Epoch,
-			RequestPack:      p.RequestPack,
-			RequestPackInfos: p.RequestPackInfos,
-		}, myEpoch)
-		peerDwnlr = pm.downloader.Peer(p.id)
-
-		if peerDwnlr != nil && progress.LastPackInfo.Index > 0 {
-			_ = peerDwnlr.NotifyPackInfo(p.progress.Epoch, progress.LastPackInfo.Index, progress.LastPackInfo.Heads, time.Now())
-		}
-
 	case msg.Code == NewEventHashesMsg:
 		if pm.fetcher.Overloaded() {
 			break
@@ -542,12 +583,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := checkLenLimits(len(announces), announces); err != nil {
 			return err
 		}
-		// Mark the hashes as present at the remote node
-		for _, id := range announces {
-			p.MarkEvent(id)
-		}
-		// Schedule all the unknown hashes for retrieval
-		_ = pm.fetcher.Notify(p.id, announces, time.Now(), p.RequestEvents)
+		pm.handleHashes(p, announces)
 
 	case msg.Code == EventsMsg:
 		if pm.fetcher.Overloaded() {
@@ -560,11 +596,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := checkLenLimits(len(events), events); err != nil {
 			return err
 		}
-		// Mark the hashes as present at the remote node
-		for _, e := range events {
-			p.MarkEvent(e.ID())
-		}
-		_ = pm.fetcher.Enqueue(p.id, events.Bases(), time.Now(), p.RequestEvents)
+		pm.handleEvents(p, events.Bases())
 
 	case msg.Code == EvmTxMsg:
 		// Transactions arrived, make sure we have a valid and fresh graph to handle them
@@ -613,120 +645,60 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			_ = p.SendEventsRLP(rawEvents, ids)
 		}
 
-	case msg.Code == GetPackInfosMsg:
-		var request getPackInfosData
+	case msg.Code == RequestEventsStream:
+		var request essteam.Request
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		if err := checkLenLimits(len(request.Indexes), request); err != nil {
+		if request.Limit.Num > hardLimitItems {
+			return errResp(ErrMsgTooLarge, "%v", msg)
+		}
+		if request.Limit.Size > protocolMaxMsgSize*2/3 {
+			return errResp(ErrMsgTooLarge, "%v", msg)
+		}
+
+		pid := p.id
+		_, peerErr := pm.seeder.NotifyRequestReceived(streamseeder.Peer{
+			ID:        pid,
+			SendChunk: p.SendEventsStream,
+			Misbehaviour: func(err error) {
+				pm.peerMisbehaviour(pid, err)
+			},
+		}, request)
+		if peerErr != nil {
+			return peerErr
+		}
+
+	case msg.Code == EventsStream:
+		var chunk epochChunk
+		if err := msg.Decode(&chunk); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		if err := checkLenLimits(len(chunk.Events)+len(chunk.IDs)+1, chunk); err != nil {
 			return err
 		}
 
-		packsNum, ok := pm.store.GetPacksNum(request.Epoch)
-		if !ok {
-			// no packs in the requested epoch
-			break
+		if (len(chunk.Events) != 0) && (len(chunk.IDs) != 0) {
+			return errors.New("expected either events or event hashes")
 		}
-
-		rawPackInfos := make([]rlp.RawValue, 0, len(request.Indexes))
-		size := 0
-		for _, index := range request.Indexes {
-			if index >= packsNum {
-				// return only pinned and existing packs
-				continue
-			}
-
-			if raw := pm.store.GetPackInfoRLP(request.Epoch, index); raw != nil {
-				rawPackInfos = append(rawPackInfos, raw)
-				size += len(raw)
-			}
-			if size >= softResponseLimitSize {
-				break
+		var last hash.Event
+		var total essteam.Metric
+		if len(chunk.IDs) != 0 {
+			pm.handleHashes(p, chunk.IDs)
+			last = chunk.IDs[len(chunk.IDs)-1]
+			total.Num = idx.Event(len(chunk.IDs))
+			total.Size = uint64(len(chunk.IDs) * len(hash.ZeroEvent))
+		}
+		if len(chunk.Events) != 0 {
+			pm.handleEvents(p, chunk.Events.Bases())
+			last = chunk.Events[len(chunk.Events)-1].ID()
+			total.Num = idx.Event(len(chunk.Events))
+			for _, e := range chunk.Events {
+				total.Size += uint64(e.Size())
 			}
 		}
-		if len(rawPackInfos) != 0 {
-			_ = p.SendPackInfosRLP(&packInfosDataRLP{
-				Epoch:           request.Epoch,
-				TotalNumOfPacks: packsNum,
-				RawInfos:        rawPackInfos,
-			})
-		}
 
-	case msg.Code == GetPackMsg:
-		var request getPackData
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-
-		if request.Epoch > myEpoch {
-			// short circuit if future epoch
-			break
-		}
-
-		ids := make(hash.Events, 0, softLimitItems)
-		for i, id := range pm.store.GetPack(request.Epoch, request.Index) {
-			ids = append(ids, id)
-			if i >= softLimitItems {
-				break
-			}
-		}
-		if len(ids) != 0 {
-			_ = p.SendPack(&packData{
-				Epoch: request.Epoch,
-				Index: request.Index,
-				IDs:   ids,
-			})
-		}
-
-	case msg.Code == PackInfosMsg:
-		if peerDwnlr == nil {
-			break
-		}
-
-		var infos packInfosData
-		if err := msg.Decode(&infos); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if err := checkLenLimits(len(infos.Infos), infos); err != nil {
-			return err
-		}
-
-		// notify about number of packs this peer has
-		_ = peerDwnlr.NotifyPacksNum(infos.Epoch, infos.TotalNumOfPacks)
-
-		for _, info := range infos.Infos {
-			if len(info.Heads) == 0 {
-				return errResp(ErrEmptyMessage, "%v", msg)
-			}
-			// Mark the hashes as present at the remote node
-			for _, id := range info.Heads {
-				p.MarkEvent(id)
-			}
-			// Notify downloader about new packInfo
-			_ = peerDwnlr.NotifyPackInfo(infos.Epoch, info.Index, info.Heads, time.Now())
-		}
-
-	case msg.Code == PackMsg:
-		if peerDwnlr == nil {
-			break
-		}
-
-		var pack packData
-		if err := msg.Decode(&pack); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if err := checkLenLimits(len(pack.IDs), pack); err != nil {
-			return err
-		}
-		if len(pack.IDs) == 0 {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		// Mark the hashes as present at the remote node
-		for _, id := range pack.IDs {
-			p.MarkEvent(id)
-		}
-		// Notify downloader about new pack
-		_ = peerDwnlr.NotifyPack(pack.Epoch, pack.Index, pack.IDs, time.Now(), p.RequestEvents)
+		_ = pm.leecher.NotifyChunkReceived(chunk.SessionID, last, total, chunk.Done)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -866,13 +838,6 @@ func (pm *ProtocolManager) onNewEpochLoop() {
 	for {
 		select {
 		case myEpoch := <-pm.newEpochsCh:
-			peerEpoch := func(peer string) idx.Epoch {
-				p := pm.peers.Peer(peer)
-				if p == nil {
-					return 0
-				}
-				return p.progress.Epoch
-			}
 			if atomic.LoadUint32(&pm.synced) == 0 {
 				synced := false
 				for _, peer := range pm.peers.List() {
@@ -886,7 +851,7 @@ func (pm *ProtocolManager) onNewEpochLoop() {
 				}
 			}
 			pm.buffer.Clear()
-			pm.downloader.OnNewEpoch(myEpoch, peerEpoch)
+			pm.leecher.OnNewEpoch(myEpoch)
 		// Err() channel will be closed when unsubscribing.
 		case <-pm.newEpochsSub.Err():
 			return
