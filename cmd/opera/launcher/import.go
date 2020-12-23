@@ -8,12 +8,13 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -21,7 +22,6 @@ import (
 	"github.com/status-im/keycard-go/hexutils"
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/Fantom-foundation/go-opera/eventcheck"
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
@@ -36,6 +36,7 @@ func importEvents(ctx *cli.Context) error {
 	// avoid P2P interaction, API calls and events emitting
 	genesis := getOperaGenesis(ctx)
 	cfg := makeAllConfigs(ctx)
+	cfg.Opera.HeavyCheck.Threads = runtime.NumCPU()
 	cfg.Opera.Emitter.Validator = emitter.ValidatorConfig{}
 	cfg.Opera.TxPool.Journal = ""
 	cfg.Node.IPCPath = ""
@@ -63,10 +64,8 @@ func importToNode(ctx *cli.Context, cfg *config, genesis integration.InputGenesi
 	defer close()
 	startNode(ctx, node)
 
-	check := ctx.BoolT(EventsCheckFlag.Name)
-
 	for _, fn := range args {
-		if err := importFile(svc, check, fn); err != nil {
+		if err := importFile(svc, fn); err != nil {
 			log.Error("Import error", "file", fn, "err", err)
 			return err
 		}
@@ -94,14 +93,14 @@ func checkEventsFileHeader(reader io.Reader) error {
 	return nil
 }
 
-func importFile(srv *gossip.Service, check bool, fn string) error {
+func importFile(srv *gossip.Service, fn string) error {
 	// Watch for Ctrl-C while the import is running.
 	// If a signal is received, the import will stop.
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(interrupt)
 
-	log.Info("Importing events from file", "file", fn, "check", check)
+	log.Info("Importing events from file", "file", fn)
 
 	// Open the file handle and potentially unwrap the gzip stream
 	fh, err := os.Open(fn)
@@ -125,9 +124,34 @@ func importFile(srv *gossip.Service, check bool, fn string) error {
 	stream := rlp.NewStream(reader, 0)
 
 	start := time.Now()
-	skipped := 0
-	imported := 0
 	last := hash.Event{}
+
+	batch := make(inter.EventPayloads, 0, 32*1024)
+	batchSize := 0
+	maxBatchSize := 8 * 1024 * 1024
+	epoch := idx.Epoch(0)
+	txs := 0
+	events := 0
+
+	processBatch := func() error {
+		if batch.Len() == 0 {
+			return nil
+		}
+		err := srv.DagProcessor().Enqueue("", batch.Bases(), true, time.Now(), func(events hash.Events) error {
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		for !srv.DagProcessor().Empty() {
+			time.Sleep(time.Millisecond)
+		}
+		last = batch[batch.Len()-1].ID()
+		batch = batch[:0]
+		batchSize = 0
+		return nil
+	}
+
 	for {
 		select {
 		case <-interrupt:
@@ -137,31 +161,28 @@ func importFile(srv *gossip.Service, check bool, fn string) error {
 		e := new(inter.EventPayload)
 		err = stream.Decode(e)
 		if err == io.EOF {
+			err = processBatch()
+			if err != nil {
+				return err
+			}
 			break
 		}
 		if err != nil {
 			return err
 		}
-
-		eStart := time.Now()
-		if check {
-			err := srv.ValidateEvent(e)
-			if err != nil && err != epochcheck.ErrNotRelevant && err != eventcheck.ErrAlreadyConnectedEvent {
+		if e.Epoch() != epoch || batchSize >= maxBatchSize {
+			err = processBatch()
+			if err != nil {
 				return err
 			}
 		}
-		err := srv.ProcessEvent(e)
-		if err == epochcheck.ErrNotRelevant || err == eventcheck.ErrAlreadyConnectedEvent {
-			skipped++
-		} else if err != nil {
-			return err
-		} else {
-			log.Info("New event imported", "id", e.ID(), "checked", check, "t", time.Since(eStart), "imported", imported, "skipped", skipped, "elapsed", common.PrettyDuration(time.Since(start)))
-			last = e.ID()
-			imported++
-		}
+		epoch = e.Epoch()
+		batch = append(batch, e)
+		batchSize += 1024 + e.Size()
+		txs += e.Txs().Len()
+		events++
 	}
-	log.Info("Events import is finished", "file", fn, "checked", check, "last", last.String(), "imported", imported, "skipped", skipped, "elapsed", common.PrettyDuration(time.Since(start)))
+	log.Info("Events import is finished", "file", fn, "last", last.String(), "imported", events, "txs", txs, "elapsed", common.PrettyDuration(time.Since(start)))
 
 	return nil
 }

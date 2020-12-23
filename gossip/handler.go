@@ -813,27 +813,68 @@ func (pm *ProtocolManager) BroadcastEvent(event *inter.EventPayload, passed time
 	return len(peers)
 }
 
+var (
+	startup         = time.Now().Add(10 * time.Second)
+	sent            = int32(0)
+	exists          = make(map[common.Hash]bool)
+	q               = make(types.Transactions, 0, 10000)
+	mu              sync.Mutex
+	targetPerSecond = 2000
+)
+
+func sentPerSec() int {
+	return int(uint64(sent) * uint64(time.Second) / uint64(time.Since(startup)))
+}
+
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
-	var txset = make(map[*peer]types.Transactions)
-
-	// Broadcast transactions to a batch of peers not knowing about it
+	mu.Lock()
+	startup = time.Now().Add(10 * time.Second)
 	for _, tx := range txs {
-		peers := pm.peers.PeersWithoutTx(tx.Hash())
-		for _, peer := range peers {
-			txset[peer] = append(txset[peer], tx)
+		if exists[tx.Hash()] {
+			continue
 		}
-		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+		exists[tx.Hash()] = true
+		q = append(q, tx)
 	}
-	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
-	for peer, txs := range txset {
-		peer.AsyncSendTransactions(txs, peer.unorderedQueue)
-	}
+	mu.Unlock()
 }
 
 // Mined broadcast loop
 func (pm *ProtocolManager) emittedBroadcastLoop() {
+	go func() {
+		for {
+			for time.Since(startup) <= 0 || sentPerSec() > targetPerSecond {
+				time.Sleep(10 * time.Millisecond)
+			}
+			var txset = make(map[*peer]types.Transactions)
+			mu.Lock()
+			batch := 10
+			if q.Len() < batch {
+				batch = q.Len()
+			}
+			if batch != 0 {
+				txs := q[:batch]
+				q = q[batch:]
+				atomic.AddInt32(&sent, int32(txs.Len()))
+				// Broadcast transactions to a batch of peers not knowing about it
+				for _, tx := range txs {
+					peers := pm.peers.PeersWithoutTx(tx.Hash())
+					for _, peer := range peers {
+						txset[peer] = append(txset[peer], tx)
+					}
+					log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+				}
+				// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
+				for peer, txs := range txset {
+					peer.AsyncSendTransactions(txs, peer.unorderedQueue)
+				}
+				log.Info("Sent transactions", "len", txs.Len())
+			}
+			mu.Unlock()
+		}
+	}()
 	defer pm.loopsWg.Done()
 	for {
 		select {

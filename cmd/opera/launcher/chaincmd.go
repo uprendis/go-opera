@@ -6,22 +6,10 @@ import (
 )
 
 var (
-	EventsCheckFlag = cli.BoolTFlag{
-		Name:  "check",
-		Usage: "true if events should be fully checked before importing",
-	}
 	importCommand = cli.Command{
 		Name:      "import",
 		Usage:     "Import a blockchain file",
 		ArgsUsage: "<filename> (<filename 2> ... <filename N>) [check=false]",
-		Flags: []cli.Flag{
-			DataDirFlag,
-			utils.CacheFlag,
-			utils.SyncModeFlag,
-			utils.GCModeFlag,
-			utils.CacheDatabaseFlag,
-			utils.CacheGCFlag,
-		},
 		Category: "MISCELLANEOUS COMMANDS",
 		Description: `
 The import command imports events from an RLP-encoded files.
@@ -35,7 +23,6 @@ Events are fully verified by default, unless overridden by check=false flag.`,
 				ArgsUsage: "<filename> (<filename 2> ... <filename N>) [--check=false]",
 				Flags: []cli.Flag{
 					DataDirFlag,
-					EventsCheckFlag,
 					utils.CacheFlag,
 					utils.SyncModeFlag,
 					utils.GCModeFlag,
@@ -43,20 +30,13 @@ Events are fully verified by default, unless overridden by check=false flag.`,
 					utils.CacheGCFlag,
 				},
 				Description: `
-The import command imports events from an RLP-encoded files.
-Events are fully verified by default, unless overridden by --check=false flag.`,
+The import command imports events from an RLP-encoded files.`,
 			},
 		},
 	}
 	exportCommand = cli.Command{
 		Name:  "export",
 		Usage: "Export blockchain",
-		Flags: []cli.Flag{
-			DataDirFlag,
-			utils.CacheFlag,
-			utils.SyncModeFlag,
-			utils.GCModeFlag,
-		},
 		Category: "MISCELLANEOUS COMMANDS",
 
 		Subcommands: []cli.Command{

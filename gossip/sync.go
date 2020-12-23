@@ -3,7 +3,6 @@ package gossip
 import (
 	"math/rand"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 )
@@ -49,23 +48,24 @@ func (pm *ProtocolManager) txsyncLoop() {
 
 	// send starts a sending a pack of transactions from the sync.
 	send := func(s *txsync) {
-		// Fill pack with transactions up to the target size.
-		size := common.StorageSize(0)
-		pack.p = s.p
-		pack.txs = pack.txs[:0]
-		for i := 0; i < len(s.txs) && size < txsyncPackSize; i++ {
-			pack.txs = append(pack.txs, s.txs[i])
-			size += s.txs[i].Size()
-		}
-		// Remove the transactions that will be sent.
-		s.txs = s.txs[:copy(s.txs, s.txs[len(pack.txs):])]
-		if len(s.txs) == 0 {
-			delete(pending, s.p.ID())
-		}
-		// Send the pack in the background.
-		s.p.Log().Trace("Sending batch of transactions", "count", len(pack.txs), "bytes", size)
-		sending = true
-		go func() { done <- pack.p.SendTransactions(pack.txs) }()
+		pm.BroadcastTxs(s.txs)
+		//// Fill pack with transactions up to the target size.
+		//size := common.StorageSize(0)
+		//pack.p = s.p
+		//pack.txs = pack.txs[:0]
+		//for i := 0; i < len(s.txs) && size < txsyncPackSize; i++ {
+		//	pack.txs = append(pack.txs, s.txs[i])
+		//	size += s.txs[i].Size()
+		//}
+		//// Remove the transactions that will be sent.
+		//s.txs = s.txs[:copy(s.txs, s.txs[len(pack.txs):])]
+		//if len(s.txs) == 0 {
+		//	delete(pending, s.p.ID())
+		//}
+		//// Send the pack in the background.
+		//s.p.Log().Trace("Sending batch of transactions", "count", len(pack.txs), "bytes", size)
+		//sending = true
+		//go func() { done <- pack.p.SendTransactions(pack.txs) }()
 	}
 
 	// pick chooses the next pending sync.

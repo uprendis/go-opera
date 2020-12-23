@@ -325,6 +325,12 @@ func (s *Service) Start() error {
 
 // Stop method invoked when the node terminates the service.
 func (s *Service) Stop() error {
+	// wait until block has processed
+	s.engineMu.Lock()
+	s.stopped = true
+	s.blockProcWg.Wait()
+	s.engineMu.Unlock()
+
 	close(s.done)
 	s.emitter.Stop()
 	s.pm.Stop()
@@ -334,9 +340,6 @@ func (s *Service) Stop() error {
 	// flush the state at exit, after all the routines stopped
 	s.engineMu.Lock()
 	defer s.engineMu.Unlock()
-	s.stopped = true
-
-	s.blockProcWg.Wait()
 	return s.store.Commit()
 }
 

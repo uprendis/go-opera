@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/eventcheck/epochcheck"
+	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/ethereum/go-ethereum/common"
@@ -137,7 +137,12 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 
 	if s.store.IsCommitNeeded(newEpoch != oldEpoch) {
 		s.blockProcWg.Wait()
-		return s.store.Commit()
+		start := time.Now()
+		err = s.store.Commit()
+		if err != nil {
+			return err
+		}
+		s.Log.Warn("================= commit =================", "t", time.Since(start).String())
 	}
 	return nil
 }
@@ -153,32 +158,6 @@ func (u *uniqueID) sample() [24]byte {
 	return id
 }
 
-// ProcessEvent takes event into processing.
-// Event order matter: parents first.
-// ProcessEvent is safe for concurrent use
-func (s *Service) ProcessEvent(e *inter.EventPayload) error {
-	s.engineMu.Lock()
-	defer s.engineMu.Unlock()
-	return s.processEvent(e)
-}
-
-// ValidateEvent runs all the checkers for an event
-func (s *Service) ValidateEvent(e *inter.EventPayload) error {
-	s.engineMu.RLock()
-	defer s.engineMu.RUnlock()
-	if e.Epoch() != s.store.GetEpoch() {
-		return epochcheck.ErrNotRelevant
-	}
-	if s.store.HasEvent(e.ID()) {
-		return eventcheck.ErrAlreadyConnectedEvent
-	}
-	parents := make(inter.EventIs, 0, len(e.Parents()))
-	for _, id := range e.Parents() {
-		header := s.store.GetEvent(id)
-		if header == nil {
-			return errors.New("out of order")
-		}
-		parents = append(parents, header)
-	}
-	return s.checkers.Validate(e, parents)
+func (s *Service) DagProcessor() *dagprocessor.Processor {
+	return s.pm.processor
 }

@@ -35,9 +35,9 @@ const (
 	// maxQueuedItems is the maximum number of items to queue up before
 	// dropping broadcasts. This is a sensitive number as a transaction list might
 	// contain a single transaction, or thousands.
-	maxOrderedQueueItems   = 4096
-	maxUnorderedQueueItems = 4096
-	maxQueuedSize          = protocolMaxMsgSize + 1024
+	maxOrderedQueueItems   = 40960
+	maxUnorderedQueueItems = 40960
+	maxQueuedSize          = 100 * protocolMaxMsgSize + 1024
 
 	handshakeTimeout = 5 * time.Second
 )
@@ -194,6 +194,7 @@ func memSize(v rlp.RawValue) dag.Metric {
 
 func (p *peer) asyncSendEncodedItem(raw rlp.RawValue, code uint64, queue chan broadcastItem) bool {
 	if !p.queuedDataSemaphore.TryAcquire(memSize(raw)) {
+		log.Error("dropped")
 		return false
 	}
 	item := broadcastItem{
@@ -220,6 +221,7 @@ func (p *peer) asyncSendNonEncodedItem(value interface{}, code uint64, queue cha
 
 func (p *peer) enqueueSendEncodedItem(raw rlp.RawValue, code uint64, queue chan broadcastItem) {
 	if !p.queuedDataSemaphore.Acquire(memSize(raw), 10*time.Second) {
+		log.Error("dropped enqueue")
 		return
 	}
 	item := broadcastItem{

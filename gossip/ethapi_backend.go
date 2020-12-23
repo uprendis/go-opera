@@ -437,7 +437,7 @@ func (b *EthAPIBackend) CurrentEpoch(ctx context.Context) idx.Epoch {
 }
 
 // GetEventTime returns estimation of when event was created
-func (b *EthAPIBackend) GetEventTime(ctx context.Context, id hash.Event, arrivalTime bool) inter.Timestamp {
+func (b *EthAPIBackend) GetEventTime(id hash.Event, arrivalTime bool) inter.Timestamp {
 	var t inter.Timestamp
 	if arrivalTime /* && b.svc.config.EventLocalTimeIndex*/ {
 		t = b.svc.store.GetEventReceivingTime(id)
@@ -472,19 +472,19 @@ func (b *EthAPIBackend) BlocksTTF(ctx context.Context, untilBlock rpc.BlockNumbe
 	for i := idx.Block(untilBlock); i >= 1 && i+maxBlocks >= idx.Block(untilBlock); i-- {
 		block := b.svc.store.GetBlock(i)
 		if block == nil {
-			break
+			continue
 		}
 		decisiveEventID := b.svc.store.GetBlockDecidedBy(i)
 		if decisiveEventID.IsZero() {
-			break
+			continue
 		}
-		decidedTime := b.GetEventTime(ctx, decisiveEventID, mode == "arrival_time")
+		decidedTime := b.GetEventTime(decisiveEventID, mode == "arrival_time")
 		if decidedTime == 0 {
-			break
+			continue
 		}
 
 		for _, id := range block.Events {
-			eventTime := b.GetEventTime(ctx, id, mode == "arrival_time")
+			eventTime := b.GetEventTime(id, mode == "arrival_time")
 			if eventTime == 0 || decidedTime < eventTime {
 				continue
 			}
@@ -507,7 +507,7 @@ func (b *EthAPIBackend) ValidatorTimeDrifts(ctx context.Context, epoch rpc.Block
 	processed := 0
 
 	err := b.ForEachEpochEvent(ctx, epoch, func(event *inter.EventPayload) bool {
-		arrivalTime := b.GetEventTime(ctx, event.ID(), true)
+		arrivalTime := b.GetEventTime(event.ID(), true)
 		claimedTime := event.CreationTime()
 
 		if arrivalTime != 0 {
