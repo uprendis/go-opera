@@ -9,7 +9,7 @@ import (
 // gas settings
 const (
 	// MaxGasPowerUsed - max value of Gas Power used in one event
-	MaxGasPowerUsed = 10000000 + EventGas
+	MaxGasPowerUsed = 100000000 + EventGas
 	MaxExtraData    = 128
 
 	EventGas  = 28000
