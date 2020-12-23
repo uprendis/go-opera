@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -1616,6 +1617,17 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
 }
 
+var (
+	startup         = time.Now().Add(time.Minute)
+	sent            = int32(0)
+	q               = int32(0)
+	targetPerSecond = 10
+)
+
+func sentPerSec() int {
+	return int(uint64(sent) * uint64(time.Second) / uint64(time.Since(startup)))
+}
+
 // SubmitTransaction is a helper function that submits tx to txPool and logs a message.
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
 	// If the transaction fee cap is already specified, ensure the
@@ -1623,9 +1635,16 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := checkTxFee(tx.GasPrice(), tx.Gas(), b.RPCTxFeeCap()); err != nil {
 		return common.Hash{}, err
 	}
-	if err := b.SendTx(ctx, tx); err != nil {
-		return common.Hash{}, err
-	}
+	atomic.AddInt32(&q, 1)
+	go func() {
+		for time.Since(startup) <= 0 || sentPerSec() > targetPerSecond {
+			time.Sleep(10*time.Millisecond + time.Duration(q)*time.Microsecond*100)
+		}
+		atomic.AddInt32(&sent, 1)
+		_ = b.SendTx(ctx, tx)
+		atomic.AddInt32(&q, -1)
+		log.Info("Sent transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
+	}()
 	if tx.To() == nil {
 		signer := types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number)
 		from, err := types.Sender(signer, tx)
@@ -1633,9 +1652,9 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 			return common.Hash{}, err
 		}
 		addr := crypto.CreateAddress(from, tx.Nonce())
-		log.Info("Submitted contract creation", "fullhash", tx.Hash().Hex(), "contract", addr.Hex())
+		log.Info("Submitted contract creation", "fullhash", tx.Hash().Hex(), "contract", addr.Hex(), "q", q)
 	} else {
-		log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
+		log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To(), "q", q)
 	}
 	return tx.Hash(), nil
 }
