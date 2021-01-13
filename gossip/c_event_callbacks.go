@@ -3,6 +3,7 @@ package gossip
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -65,6 +66,8 @@ func (s *Service) buildEvent(e *inter.MutableEventPayload, onIndexed func()) err
 
 // processEvent extends the engine.Process with gossip-specific actions on each event processing
 func (s *Service) processEvent(e *inter.EventPayload) error {
+	start := time.Now()
+
 	// s.engineMu is locked here
 	if s.stopped {
 		return errStopped
@@ -80,6 +83,7 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 
 	oldEpoch := s.store.GetEpoch()
 
+	println("0", time.Since(start).String())
 	// indexing event
 	s.store.SetEvent(e)
 	defer s.dagIndexer.DropNotFlushed()
@@ -87,11 +91,13 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	if err != nil {
 		return err
 	}
+	println("1", time.Since(start).String())
 
 	// check median time
 	if e.MedianTime() != s.dagIndexer.MedianTime(e.ID(), s.store.GetEpochState().EpochStart)/inter.MinEventTime*inter.MinEventTime {
 		return errWrongMedianTime
 	}
+	println("2", time.Since(start).String())
 
 	// aBFT processing
 	err = s.engine.Process(e)
@@ -99,9 +105,11 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 		s.store.DelEvent(e.ID())
 		return err
 	}
+	println("3", time.Since(start).String())
 
 	// save event index after success
 	s.dagIndexer.Flush()
+	println("4", time.Since(start).String())
 
 	newEpoch := s.store.GetEpoch()
 
@@ -112,8 +120,10 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	s.store.AddHead(oldEpoch, e.ID())
 	// set validator's last event. we don't care about forks, because this index is used only for emitter
 	s.store.SetLastEvent(oldEpoch, e.Creator(), e.ID())
+	println("5", time.Since(start).String())
 
 	s.emitter.OnEventConnected(e)
+	println("6", time.Since(start).String())
 
 	if newEpoch != oldEpoch {
 		// reset dag indexer
@@ -129,11 +139,13 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 		s.emitter.OnNewEpoch(s.store.GetValidators(), newEpoch)
 		s.feed.newEpoch.Send(newEpoch)
 	}
+	println("7", time.Since(start).String())
 
 	if s.store.IsCommitNeeded(newEpoch != oldEpoch) {
 		s.blockProcWg.Wait()
 		return s.store.Commit()
 	}
+	println("8", time.Since(start).String())
 	return nil
 }
 

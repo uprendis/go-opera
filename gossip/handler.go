@@ -262,12 +262,14 @@ func (pm *ProtocolManager) makeProcessor(checkers *eventcheck.Checkers, fetcher 
 				now := time.Now()
 				pm.engineMu.Lock()
 				defer pm.engineMu.Unlock()
+				println("!", time.Since(now).String())
 
 				start := time.Now()
 				err := pm.processEvent(e)
 				if err != nil {
 					return err
 				}
+				println("@", time.Since(now).String())
 				log.Info("New event", "id", e.ID(), "parents", len(e.Parents()), "by", e.Creator(), "frame", e.Frame(), "txs", e.Txs().Len(), "t", time.Since(start))
 
 				// event is connected, announce it if synced up
@@ -275,6 +277,7 @@ func (pm *ProtocolManager) makeProcessor(checkers *eventcheck.Checkers, fetcher 
 					passedSinceEvent := now.Sub(e.CreationTime().Time())
 					pm.BroadcastEvent(e, passedSinceEvent)
 				}
+				println("#", time.Since(now).String())
 
 				return nil
 			},

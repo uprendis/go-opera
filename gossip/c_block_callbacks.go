@@ -76,6 +76,8 @@ func consensusCallbackBeginBlockFn(
 		var atropos inter.EventI
 		confirmedEvents := make(hash.OrderedEvents, 0, 3*es.Validators.Len())
 
+		println("A", time.Since(start).String())
+
 		return lachesis.BlockCallbacks{
 			ApplyEvent: func(_e dag.Event) {
 				e := _e.(inter.EventI)
@@ -92,6 +94,7 @@ func consensusCallbackBeginBlockFn(
 				}
 			},
 			EndBlock: func() (newValidators *pos.Validators) {
+				println("B", time.Since(start).String())
 				// Note: it's possible that i'th Atropos observes i+1's Atropos,
 				// hence ApplyEvent may be not called at all
 				if atropos == nil {
@@ -105,6 +108,7 @@ func consensusCallbackBeginBlockFn(
 				}
 
 				bs = eventProcessor.Finalize(blockCtx) // TODO: refactor to don't mutate the bs, it is unclear
+				println("C", time.Since(start).String())
 
 				sealer := blockProc.SealerModule.Start(blockCtx, bs, es)
 				sealing := sealer.EpochSealing()
@@ -125,6 +129,7 @@ func consensusCallbackBeginBlockFn(
 				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 				preInternalReceipts := evmProcessor.Execute(preInternalTxs, true)
 				bs = txListener.Finalize()
+				println("D", time.Since(start).String())
 
 				// Seal epoch if requested
 				if sealing {
@@ -134,15 +139,20 @@ func consensusCallbackBeginBlockFn(
 					store.SetEpochState(es)
 					txListener.Update(bs, es)
 				}
+				println("E", time.Since(start).String())
 
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				wg.Add(1)
+				println("D", time.Since(start).String())
 				err := parallelTasks.Enqueue(func() {
+					println("E", time.Since(start).String())
 					defer wg.Done()
+					println("F", time.Since(start).String())
 
 					// Execute post-internal transactions
 					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 					internalReceipts := evmProcessor.Execute(internalTxs, true)
+					println("G", time.Since(start).String())
 
 					// sort events by Lamport time
 					sort.Sort(confirmedEvents)
@@ -156,8 +166,10 @@ func consensusCallbackBeginBlockFn(
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						block.InternalTxs = append(block.InternalTxs, tx.Hash())
 					}
+					println("H", time.Since(start).String())
 
 					block, blockEvents := spillBlockEvents(store, block, es.Rules)
+					println("J", time.Since(start).String())
 					txs := make(types.Transactions, 0, blockEvents.Len()*10)
 					for _, e := range blockEvents {
 						txs = append(txs, e.Txs()...)
@@ -166,6 +178,7 @@ func consensusCallbackBeginBlockFn(
 
 					externalReceipts := evmProcessor.Execute(txs, false)
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
+					println("K", time.Since(start).String())
 
 					block.SkippedTxs = skippedTxs
 					block.Root = hash.Hash(evmBlock.Root)
@@ -192,6 +205,7 @@ func consensusCallbackBeginBlockFn(
 						position.BlockOffset = uint32(i)
 						txPositions[tx.Hash()] = position
 					}
+					println("L", time.Since(start).String())
 
 					// call OnNewReceipt
 					for i, r := range allReceipts {
@@ -208,6 +222,7 @@ func consensusCallbackBeginBlockFn(
 					}
 					bs = txListener.Finalize() // TODO: refactor to don't mutate the bs
 					bs.LastStateRoot = block.Root
+					println("Z", time.Since(start).String())
 					// At this point, block state is finalized
 
 					// Build index for not skipped txs
@@ -229,9 +244,11 @@ func consensusCallbackBeginBlockFn(
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						store.evm.SetTx(tx.Hash(), tx)
 					}
+					println("X", time.Since(start).String())
 
 					store.SetBlock(bs.LastBlock, block)
 					store.SetBlockState(bs)
+					println("C", time.Since(start).String())
 
 					// Notify about new block and txs
 					if feed != nil {
@@ -245,6 +262,7 @@ func consensusCallbackBeginBlockFn(
 						}
 						feed.newLogs.Send(logs)
 					}
+					println("V", time.Since(start).String())
 
 					if onBlockEnd != nil {
 						onBlockEnd(block, preInternalReceipts, internalReceipts, externalReceipts)
