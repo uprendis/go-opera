@@ -322,6 +322,9 @@ github.com/uber/jaeger-lib v2.2.0+incompatible h1:MxZXOiR2JuoANZ3J6DE/U0kSFv/eJ/
 github.com/uber/jaeger-lib v2.2.0+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/uprendis/go-ethereum v1.9.22-ftm-0.2 h1:B7PlZvPTbFNqV4SM4SxjQRWB0wfArxchOJYhP6tkXT0=
 github.com/uprendis/go-ethereum v1.9.22-ftm-0.2/go.mod h1:27ZY0H7YdbxCL0E/d23qHo9WCkjqnmFKHQl9UaUSw8s=
+github.com/uprendis/lachesis-base v0.0.0-20210121043121-be3a29ccb453/go.mod h1:E6+2LOvgADwSOv0U5YXhRJz4PlX8qJxvq8M93AOC1tM=
+github.com/uprendis/lachesis-base v0.0.0-20210121090742-853fbae3ae39 h1:uTBfAgWJTKhJyW0dE/YJLW3Tg7H4cUm0Nnc8XGBHIjA=
+github.com/uprendis/lachesis-base v0.0.0-20210121090742-853fbae3ae39/go.mod h1:E6+2LOvgADwSOv0U5YXhRJz4PlX8qJxvq8M93AOC1tM=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
