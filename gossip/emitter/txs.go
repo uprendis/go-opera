@@ -103,6 +103,7 @@ func (em *Emitter) isMyTxTurn(txHash common.Hash, sender common.Address, account
 
 	roundsHash := hash.Of(sender.Bytes(), bigendian.Uint64ToBytes(accountNonce/TxTurnNonces), epoch.Bytes())
 	rounds := utils.WeightedPermutation(roundIndex+1, validators.SortedWeights(), roundsHash)
+	println("txTurn", validators.GetID(idx.Validator(rounds[roundIndex])))
 	return validators.GetID(idx.Validator(rounds[roundIndex])) == me
 }
 
@@ -125,26 +126,31 @@ func (em *Emitter) addTxs(e *inter.MutableEventPayload, poolTxs map[common.Addre
 	for tx := sorted.Peek(); tx != nil; tx = sorted.Peek() {
 		sender, _ := types.Sender(em.world.TxSigner, tx)
 		if senderTxs[sender] >= em.config.MaxTxsPerAddress {
+			println("!MaxTxsPerAddress")
 			sorted.Pop()
 			continue
 		}
 		// check there's enough gas power to originate the transaction
 		if tx.Gas() >= e.GasPowerLeft().Min() || e.GasPowerUsed()+tx.Gas() >= maxGasUsed {
+			println("!maxGasUsed", tx.Gas(), e.GasPowerLeft().Min())
 			sorted.Pop()
 			continue
 		}
 		// check not conflicted with already originated txs (in any connected event)
 		if em.originatedTxs.TotalOf(sender) != 0 {
+			println("!originatedTxs")
 			sorted.Pop()
 			continue
 		}
 		// my turn, i.e. try to not include the same tx simultaneously by different validators
 		if !em.isMyTxTurn(tx.Hash(), sender, tx.Nonce(), time.Now(), validators, e.Creator(), epoch) {
+			println("!isMyTxTurn")
 			sorted.Pop()
 			continue
 		}
 		// check transaction is not outdated
 		if !em.world.Txpool.Has(tx.Hash()) {
+			println("!Has")
 			sorted.Pop()
 			continue
 		}
