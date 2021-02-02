@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	godebug "runtime/debug"
 	"sort"
 	"strings"
 	"time"
@@ -212,6 +213,9 @@ func init() {
 
 		return nil
 	}
+
+	// Tune Go's GC to be more aggressive
+	godebug.SetGCPercent(65)
 }
 
 func Launch(args []string) error {
