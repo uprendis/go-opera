@@ -69,6 +69,9 @@ func (em *Emitter) maxGasPowerToUse(e *inter.MutableEventPayload) uint64 {
 		}
 
 		smoothGasToUse := healthyPart + trespassingPart/2
+		if e.Seq() % 5 == 0 {
+			println(x1, x2, gasPowerLeft, newGasPowerLeft, trespassingPart, healthyPart, smoothGasToUse)
+		}
 		if maxGasToUse > smoothGasToUse {
 			maxGasToUse = smoothGasToUse
 		}
