@@ -57,3 +57,5 @@ replace gopkg.in/urfave/cli.v1 => github.com/urfave/cli v1.20.0
 replace github.com/ethereum/go-ethereum => github.com/Fantom-foundation/go-ethereum v1.9.22-ftm-0.5
 
 replace github.com/dvyukov/go-fuzz => github.com/guzenok/go-fuzz v0.0.0-20210103140116-f9104dfb626f
+
+replace github.com/Fantom-foundation/lachesis-base => github.com/uprendis/lachesis-base v0.0.0-20210322180519-882148bd8686

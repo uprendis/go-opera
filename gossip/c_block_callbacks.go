@@ -78,6 +78,7 @@ func consensusCallbackBeginBlockFn(
 		if err != nil {
 			log.Crit("Failed to open StateDB", "err", err)
 		}
+		log.Info("start")
 
 		eventProcessor := blockProc.EventsModule.Start(bs, es)
 
@@ -102,6 +103,7 @@ func consensusCallbackBeginBlockFn(
 				}
 			},
 			EndBlock: func() (newValidators *pos.Validators) {
+				log.Info("applied events")
 				if atroposTime <= bs.LastBlock.Time {
 					atroposTime = bs.LastBlock.Time + 1
 				}
@@ -156,6 +158,7 @@ func consensusCallbackBeginBlockFn(
 						log.Warn("Pre-internal transaction reverted", "txid", r.TxHash.String())
 					}
 				}
+				log.Info("Execute pre-internal transactions")
 
 				// Seal epoch if requested
 				if sealing {
@@ -168,6 +171,7 @@ func consensusCallbackBeginBlockFn(
 
 				// At this point, newValidators may be returned and the rest of the code may be executed in a parallel thread
 				blockFn := func() {
+					log.Info("blockFn")
 					// Execute post-internal transactions
 					internalTxs := blockProc.PostTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
 					internalReceipts := evmProcessor.Execute(internalTxs, true)
@@ -176,6 +180,7 @@ func consensusCallbackBeginBlockFn(
 							log.Warn("Internal transaction reverted", "txid", r.TxHash.String())
 						}
 					}
+					log.Info("PopInternalTxs")
 
 					// sort events by Lamport time
 					sort.Sort(confirmedEvents)
@@ -196,6 +201,7 @@ func consensusCallbackBeginBlockFn(
 						txs = append(txs, e.Txs()...)
 						blockEvents = append(blockEvents, e)
 					}
+					log.Info("spillBlockEvents")
 
 					externalReceipts := evmProcessor.Execute(txs, false)
 					evmBlock, skippedTxs, allReceipts := evmProcessor.Finalize()
@@ -225,6 +231,7 @@ func consensusCallbackBeginBlockFn(
 						position.BlockOffset = uint32(i)
 						txPositions[tx.Hash()] = position
 					}
+					log.Info("memorize event position of each tx")
 
 					// call OnNewReceipt
 					for i, r := range allReceipts {
@@ -239,6 +246,7 @@ func consensusCallbackBeginBlockFn(
 						}
 						txListener.OnNewReceipt(evmBlock.Transactions[i], r, creator)
 					}
+					log.Info("OnNewReceipt")
 					bs = txListener.Finalize() // TODO: refactor to not mutate the bs
 					bs.FinalizedStateRoot = block.Root
 					// At this point, block state is finalized
@@ -258,6 +266,7 @@ func consensusCallbackBeginBlockFn(
 							}
 						}
 					}
+					log.Info("Build index for not skipped txs")
 					for _, tx := range append(preInternalTxs, internalTxs...) {
 						store.evm.SetTx(tx.Hash(), tx)
 					}
@@ -267,6 +276,7 @@ func consensusCallbackBeginBlockFn(
 					bs.LastBlock = blockCtx
 					store.SetBlockEpochState(bs, es)
 
+					log.Info("SetBlockEpochState")
 					// Notify about new block and txs
 					if feed != nil {
 						feed.newBlock.Send(evmcore.ChainHeadNotify{Block: evmBlock})
@@ -279,6 +289,7 @@ func consensusCallbackBeginBlockFn(
 						}
 						feed.newLogs.Send(logs)
 					}
+					log.Info("Notify")
 
 					if onBlockEnd != nil {
 						onBlockEnd(block, preInternalReceipts, internalReceipts, externalReceipts)
