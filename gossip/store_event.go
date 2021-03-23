@@ -156,8 +156,10 @@ func (s *Store) loadHighestLamport() idx.Lamport {
 		s.Log.Crit("Failed to get key-value", "err", err)
 	}
 	if lamportBytes == nil {
+		println("not stored")
 		return 0
 	}
+	println("loaded", idx.BytesToLamport(lamportBytes))
 	return idx.BytesToLamport(lamportBytes)
 }
 
@@ -166,6 +168,7 @@ func (s *Store) getCachedHighestLamport() (idx.Lamport, bool) {
 	if cache != nil {
 		return cache.(idx.Lamport), true
 	}
+	println("not cached")
 	return 0, false
 }
 
