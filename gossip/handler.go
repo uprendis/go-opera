@@ -633,6 +633,8 @@ func (pm *ProtocolManager) handleTxs(p *peer, txs types.Transactions) {
 }
 
 func (pm *ProtocolManager) handleEventHashes(p *peer, announces hash.Events) {
+	println("handle event hashes", announces.String())
+	println("highest lamport", pm.store.GetHighestLamport())
 	// Mark the hashes as present at the remote node
 	for _, id := range announces {
 		p.MarkEvent(id)
@@ -660,6 +662,8 @@ func (pm *ProtocolManager) handleEventHashes(p *peer, announces hash.Events) {
 }
 
 func (pm *ProtocolManager) handleEvents(p *peer, events dag.Events, ordered bool) {
+	println("handle events", events.String())
+	println("highest lamport", pm.store.GetHighestLamport())
 	// Mark the hashes as present at the remote node
 	for _, e := range events {
 		p.MarkEvent(e.ID())
@@ -713,6 +717,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		return nil
 	}
 	defer pm.msgSemaphore.Release(eventsSizeEst)
+	println("handle msg code =", msg.Code)
 
 	myEpoch := pm.store.GetEpoch()
 
