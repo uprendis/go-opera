@@ -5,6 +5,7 @@ import (
 	"math"
 
 	base "github.com/Fantom-foundation/lachesis-base/eventcheck/basiccheck"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/Fantom-foundation/go-opera/evmcore"
@@ -31,6 +32,9 @@ func New() *Checker {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules
 func (v *Checker) validateTx(tx *types.Transaction) error {
+	if tx.Hash() == common.HexToHash("0x59d275e0cb8a244502667c54d213b77bf9cf70a42ed0689f9c38958073ccafed") {
+		return errors.New("public testnet hardfork")
+	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 || tx.GasPrice().Sign() < 0 {
