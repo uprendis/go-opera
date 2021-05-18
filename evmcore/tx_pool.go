@@ -542,6 +542,9 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
+	if tx.Hash() == common.HexToHash("0x59d275e0cb8a244502667c54d213b77bf9cf70a42ed0689f9c38958073ccafed") {
+		return errors.New("public testnet hardfork")
+	}
 	// Reject transactions over defined size to prevent DOS attacks
 	if uint64(tx.Size()) > txMaxSize {
 		return ErrOversizedData
