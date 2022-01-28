@@ -275,6 +275,7 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 		EVM:                 evmstore.DefaultStoreConfig(scale),
 		MaxNonFlushedSize:   17*opt.MiB + scale.I(5*opt.MiB),
 		MaxNonFlushedPeriod: 30 * time.Minute,
+		TraceTransactions:   true,
 	}
 }
 
