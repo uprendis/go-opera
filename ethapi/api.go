@@ -83,9 +83,9 @@ func (s *PublicEthereumAPI) MaxPriorityFeePerGas(ctx context.Context) (*hexutil.
 }
 
 type feeHistoryResult struct {
-	OldestBlock  *hexutil.Big     `json:"oldestBlock"`
-	Reward       [][]*hexutil.Big `json:"reward,omitempty"`
-	BaseFee      []*hexutil.Big   `json:"baseFeePerGas,omitempty"`
+	OldestBlock  *big.Int     `json:"oldestBlock"`
+	Reward       [][]*big.Int `json:"reward,omitempty"`
+	BaseFee      []*big.Int   `json:"baseFeePerGas,omitempty"`
 	GasUsedRatio []float64        `json:"gasUsedRatio"`
 }
 
@@ -93,10 +93,10 @@ var errInvalidPercentile = errors.New("invalid reward percentile")
 
 func (s *PublicEthereumAPI) FeeHistory(ctx context.Context, blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*feeHistoryResult, error) {
 	res := &feeHistoryResult{}
-	res.Reward = make([][]*hexutil.Big, 0, blockCount)
-	res.BaseFee = make([]*hexutil.Big, 0, blockCount)
+	res.Reward = make([][]*big.Int, 0, blockCount)
+	res.BaseFee = make([]*big.Int, 0, blockCount)
 	res.GasUsedRatio = make([]float64, 0, blockCount)
-	res.OldestBlock = (*hexutil.Big)(new(big.Int))
+	res.OldestBlock = (*big.Int)(new(big.Int))
 
 	// validate input parameters
 	if blockCount == 0 {
@@ -126,15 +126,15 @@ func (s *PublicEthereumAPI) FeeHistory(ctx context.Context, blockCount rpc.Decim
 
 	baseFee := s.b.MinGasPrice()
 
-	tips := make([]*hexutil.Big, 0, len(rewardPercentiles))
+	tips := make([]*big.Int, 0, len(rewardPercentiles))
 	for _, p := range rewardPercentiles {
 		tip := s.b.SuggestGasTipCap(ctx, uint64(gasprice.DecimalUnit*p/100.0))
-		tips = append(tips, (*hexutil.Big)(tip))
+		tips = append(tips, (*big.Int)(tip))
 	}
-	res.OldestBlock.ToInt().SetUint64(uint64(oldest))
+	res.OldestBlock.SetUint64(uint64(oldest))
 	for i := uint64(0); i < uint64(last-oldest+1); i++ {
 		res.Reward = append(res.Reward, tips)
-		res.BaseFee = append(res.BaseFee, (*hexutil.Big)(baseFee))
+		res.BaseFee = append(res.BaseFee, (*big.Int)(baseFee))
 		res.GasUsedRatio = append(res.GasUsedRatio, 0.99)
 	}
 	return res, nil
