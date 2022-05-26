@@ -15,6 +15,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/lachesis"
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -26,7 +27,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/opera"
-	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
 	"github.com/Fantom-foundation/go-opera/utils"
 )
@@ -261,8 +261,26 @@ func consensusCallbackBeginBlockFn(
 				evmProcessor := blockProc.EVMModule.Start(blockCtx, statedb, evmStateReader, onNewLogAll, es.Rules)
 				substart := time.Now()
 
+
 				// Execute pre-internal transactions
 				preInternalTxs := blockProc.PreTxTransactor.PopInternalTxs(blockCtx, bs, es, sealing, statedb)
+				totalSupply := new(big.Int)
+				if len(preInternalTxs) != 0 {
+					println("____")
+					it, err := store.evm.Snaps.AccountIterator(common.Hash(bs.FinalizedStateRoot), (common.Hash{}))
+					if err != nil {
+						panic(err)
+					}
+					for it.Next() {
+						acc, err := snapshot.FullAccount(it.Account())
+						if err != nil {
+							panic(err)
+						}
+						totalSupply.Add(totalSupply, acc.Balance)
+					}
+					it.Release()
+					println("____", store.GetLatestBlockIndex(), bs.FinalizedStateRoot.String(), totalSupply.String())
+				}
 				preInternalReceipts := evmProcessor.Execute(preInternalTxs)
 				bs = txListener.Finalize()
 				for _, r := range preInternalReceipts {
@@ -271,11 +289,11 @@ func consensusCallbackBeginBlockFn(
 					}
 				}
 				if len(preInternalReceipts) != 0 {
-					println(es.Epoch, "------()____+", evmwriter.TotalSupply.String())
+					println(es.Epoch, "------()____+", totalSupply.String())
 					sfcTotalSupplyH := statedb.GetState(sfc.ContractAddress, utils.U64to256(118))
 					sfcTotalSupply := new(big.Int).SetBytes(sfcTotalSupplyH.Bytes())
 					println(es.Epoch, "------()____-", sfcTotalSupply.String())
-					sfcTotalSupply.Sub(sfcTotalSupply, evmwriter.TotalSupply)
+					sfcTotalSupply.Sub(sfcTotalSupply, totalSupply)
 					println(es.Epoch, "------()____=", sfcTotalSupply.String())
 				}
 

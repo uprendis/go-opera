@@ -28,7 +28,7 @@ var (
 	incNonceMethodID   []byte
 )
 
-var TotalSupply *big.Int
+var TotalSupply = new(big.Int)
 var TotalSupplyI = new(big.Int)
 
 func init() {

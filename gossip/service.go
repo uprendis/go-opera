@@ -16,7 +16,6 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/utils/workers"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/event"
@@ -50,7 +49,6 @@ import (
 	snapsync "github.com/Fantom-foundation/go-opera/gossip/protocols/snap"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
-	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
@@ -436,26 +434,6 @@ func (s *Service) Start() error {
 		root = hash.Zero
 	}
 	_ = s.store.GenerateSnapshotAt(common.Hash(root), true)
-
-	if true {
-		time.Sleep(time.Second)
-		println("____")
-		it, err := s.store.evm.Snaps.AccountIterator(common.Hash(root), (common.Hash{}))
-		if err != nil {
-			return err
-		}
-		sum := new(big.Int)
-		for it.Next() {
-			acc, err := snapshot.FullAccount(it.Account())
-			if err != nil {
-				return err
-			}
-			sum.Add(sum, acc.Balance)
-		}
-		it.Release()
-		println("____", s.store.GetLatestBlockIndex(), root.String(), sum.String())
-		evmwriter.TotalSupply = sum
-	}
 
 	// start blocks processor
 	s.blockProcTasks.Start(1)
