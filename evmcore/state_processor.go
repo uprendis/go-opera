@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 
+	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/signers/internaltx"
 )
@@ -142,8 +143,10 @@ func applyTransaction(
 	if result.Failed() {
 		receipt.Status = types.ReceiptStatusFailed
 	} else {
+		evmwriter.TotalSupply.Add(evmwriter.TotalSupply, evmwriter.TotalSupplyI)
 		receipt.Status = types.ReceiptStatusSuccessful
 	}
+	evmwriter.TotalSupplyI = new(big.Int)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
 

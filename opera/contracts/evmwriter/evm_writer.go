@@ -29,6 +29,7 @@ var (
 )
 
 var TotalSupply *big.Int
+var TotalSupplyI = new(big.Int)
 
 func init() {
 	abi, err := abi.JSON(strings.NewReader(ContractABI))
@@ -85,11 +86,11 @@ func (_ PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm
 		balance := stateDB.GetBalance(acc)
 		if balance.Cmp(value) >= 0 {
 			diff := new(big.Int).Sub(balance, value)
-			TotalSupply.Sub(TotalSupply, diff)
+			TotalSupplyI.Sub(TotalSupplyI, diff)
 			stateDB.SubBalance(acc, diff)
 		} else {
 			diff := new(big.Int).Sub(value, balance)
-			TotalSupply.Add(TotalSupply, diff)
+			TotalSupplyI.Add(TotalSupplyI, diff)
 			stateDB.AddBalance(acc, diff)
 		}
 	} else if bytes.Equal(input[:4], copyCodeMethodID) {
