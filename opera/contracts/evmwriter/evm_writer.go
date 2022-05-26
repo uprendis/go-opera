@@ -28,6 +28,8 @@ var (
 	incNonceMethodID   []byte
 )
 
+var TotalSupply *big.Int
+
 func init() {
 	abi, err := abi.JSON(strings.NewReader(ContractABI))
 	if err != nil {
@@ -83,9 +85,11 @@ func (_ PreCompiledContract) Run(stateDB vm.StateDB, _ vm.BlockContext, txCtx vm
 		balance := stateDB.GetBalance(acc)
 		if balance.Cmp(value) >= 0 {
 			diff := new(big.Int).Sub(balance, value)
+			TotalSupply.Sub(TotalSupply, diff)
 			stateDB.SubBalance(acc, diff)
 		} else {
 			diff := new(big.Int).Sub(value, balance)
+			TotalSupply.Add(TotalSupply, diff)
 			stateDB.AddBalance(acc, diff)
 		}
 	} else if bytes.Equal(input[:4], copyCodeMethodID) {

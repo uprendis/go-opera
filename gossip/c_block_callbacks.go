@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -25,6 +26,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/opera"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
 	"github.com/Fantom-foundation/go-opera/utils"
 )
 
@@ -266,6 +269,14 @@ func consensusCallbackBeginBlockFn(
 					if r.Status == 0 {
 						log.Warn("Pre-internal transaction reverted", "txid", r.TxHash.String())
 					}
+				}
+				if len(preInternalReceipts) != 0 {
+					println(es.Epoch, "------()____+", evmwriter.TotalSupply.String())
+					sfcTotalSupplyH := statedb.GetState(sfc.ContractAddress, utils.U64to256(118))
+					sfcTotalSupply := new(big.Int).SetBytes(sfcTotalSupplyH.Bytes())
+					println(es.Epoch, "------()____-", sfcTotalSupply.String())
+					sfcTotalSupply.Sub(sfcTotalSupply, evmwriter.TotalSupply)
+					println(es.Epoch, "------()____=", sfcTotalSupply.String())
 				}
 
 				// Seal epoch if requested

@@ -50,6 +50,7 @@ import (
 	snapsync "github.com/Fantom-foundation/go-opera/gossip/protocols/snap"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
@@ -437,6 +438,7 @@ func (s *Service) Start() error {
 	_ = s.store.GenerateSnapshotAt(common.Hash(root), true)
 
 	if true {
+		time.Sleep(time.Second)
 		println("____")
 		it, err := s.store.evm.Snaps.AccountIterator(common.Hash(root), (common.Hash{}))
 		if err != nil {
@@ -452,6 +454,7 @@ func (s *Service) Start() error {
 		}
 		it.Release()
 		println("____", s.store.GetLatestBlockIndex(), root.String(), sum.String())
+		evmwriter.TotalSupply = sum
 	}
 
 	// start blocks processor

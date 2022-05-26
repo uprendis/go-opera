@@ -27,6 +27,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+
+	"github.com/Fantom-foundation/go-opera/opera/contracts/evmwriter"
 )
 
 var emptyCodeHash = crypto.Keccak256Hash(nil)
@@ -199,6 +201,7 @@ func (st *StateTransition) buyGas() error {
 
 	st.initialGas = st.msg.Gas()
 	st.state.SubBalance(st.msg.From(), mgval)
+	evmwriter.TotalSupply.Sub(evmwriter.TotalSupply, mgval)
 	return nil
 }
 
@@ -322,6 +325,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) {
 	// Return wei for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	st.state.AddBalance(st.msg.From(), remaining)
+	evmwriter.TotalSupply.Add(evmwriter.TotalSupply, remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
