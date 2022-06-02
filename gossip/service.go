@@ -454,6 +454,10 @@ func (s *Service) Start() error {
 		// halt syncing
 		s.stopped = true
 	}
+	
+	for _, u := range s.store.GetUpgradeHeights() {
+		println(u.Height, u.Upgrades.Berlin, u.Upgrades.Berlin, u.Upgrades.Llr)
+	}
 
 	return nil
 }
