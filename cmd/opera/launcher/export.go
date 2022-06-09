@@ -33,6 +33,25 @@ var (
 // always print out progress. This avoids the user wondering what's going on.
 const statsReportLimit = 8 * time.Second
 
+func exportPreimages(ctx *cli.Context) error {
+	if len(ctx.Args()) < 1 {
+		utils.Fatalf("This command requires an argument.")
+	}
+
+	cfg := makeAllConfigs(ctx)
+
+	rawProducer := integration.DBProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.cachescale)
+	gdb, err := makeRawGossipStore(rawProducer, cfg)
+	if err != nil {
+		log.Crit("DB opening error", "datadir", cfg.Node.DataDir, "err", err)
+	}
+	defer gdb.Close()
+
+	fn := ctx.Args().First()
+
+	return utils.ExportPreimages(gdb.EvmStore().EvmDb, fn)
+}
+
 func exportEvents(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
