@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -28,6 +29,8 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
+
+var prev time.Time
 
 func importEvm(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
@@ -104,9 +107,13 @@ func importEvents(ctx *cli.Context) error {
 }
 
 func importEventsToNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store, args ...string) error {
+	prev = time.Now()
 	node, svc, nodeClose := makeNode(ctx, cfg, genesisStore)
 	defer nodeClose()
 	startNode(ctx, node)
+	println("==+==", "started", time.Since(prev)/time.Second)
+	PrintMemUsage()
+	prev = time.Now()
 
 	for _, fn := range args {
 		log.Info("Importing events from file", "file", fn)
@@ -114,6 +121,9 @@ func importEventsToNode(ctx *cli.Context, cfg *config, genesisStore *genesisstor
 			log.Error("Import error", "file", fn, "err", err)
 			return err
 		}
+		println("==+==", "imported", time.Since(prev)/time.Second)
+		PrintMemUsage()
+		prev = time.Now()
 	}
 	return nil
 }
@@ -135,6 +145,20 @@ func checkEventsFileHeader(reader io.Reader) error {
 	return nil
 }
 
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
 func importEventsFile(srv *gossip.Service, fn string) error {
 	// Watch for Ctrl-C while the import is running.
 	// If a signal is received, the import will stop.
@@ -151,6 +175,9 @@ func importEventsFile(srv *gossip.Service, fn string) error {
 			continue
 		}
 	}
+	println("==+==", "generated", time.Since(prev)/time.Second)
+	PrintMemUsage()
+	prev = time.Now()
 
 	// Open the file handle and potentially unwrap the gzip stream
 	fh, err := os.Open(fn)
