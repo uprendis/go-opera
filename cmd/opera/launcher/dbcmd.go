@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -41,7 +40,7 @@ func compact(ctx *cli.Context) error {
 
 	cfg := makeAllConfigs(ctx)
 
-	rawProducer := integration.DBProducer(path.Join(cfg.Node.DataDir, "chaindata"), cfg.cachescale)
+	rawProducer := makeRawDbsProducer(cfg)
 	for _, name := range rawProducer.Names() {
 		db, err := rawProducer.OpenDB(name)
 		defer db.Close()
