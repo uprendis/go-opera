@@ -254,36 +254,59 @@ func migrateComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName]k
 
 	// check if there's overlapping in tables
 	occupied := make(map[multidb.TableLocator]bool)
+	inUse := make(map[multidb.DBLocator]bool)
 	overlapping := false
 	for _, e := range byReq {
 		if occupied[tableLocatorOf(e.Old)] {
 			overlapping = true
-			break
 		}
 		if occupied[tableLocatorOf(e.New)] {
 			overlapping = true
-			break
 		}
 		occupied[tableLocatorOf(e.Old)] = true
 		occupied[tableLocatorOf(e.New)] = true
+		inUse[dbLocatorOf(e.New)] = true
 	}
 
-	// if component only needs moving tables with no overlapping
-	if !overlapping {
+	toMove := make(map[multidb.DBLocator]bool)
+	{
+		allowMoving := !overlapping
 		for _, e := range byReq {
-			if e.Old.Table == e.New.Table {
+			if allowMoving && tableLocatorOf(e.Old) == tableLocatorOf(e.New) {
 				continue
 			}
+			oldInUse := inUse[dbLocatorOf(e.Old)]
+			moving := oldInUse && allowMoving
 			err := func() error {
-				db, err := dbTypes[e.New.Type].OpenDB(e.New.Name)
+				oldDB, err := dbTypes[e.Old.Type].OpenDB(e.Old.Name)
 				if err != nil {
 					return err
 				}
-				defer db.Close()
-				log.Info("Moving DB table", "req", e.Req, "old_db_type", e.Old.Type, "old_db_name", e.Old.Name, "old_table", e.Old.Table,
-					"new_db_type", e.New.Type, "new_db_name", e.New.Name, "new_table", e.New.Table)
-				oldTable := table.New(db, []byte(e.Old.Table))
-				newTable := table.New(db, []byte(e.New.Table))
+				defer oldDB.Close()
+				var newDB kvdb.Store
+				newDbName := e.New.Name
+				if allowMoving {
+					newDB, err = dbTypes[e.New.Type].OpenDB(e.New.Name)
+					if err != nil {
+						return err
+					}
+				} else {
+					newDB, err = tmpDbTypes[e.New.Type].OpenDB(e.New.Name)
+					if err != nil {
+						return err
+					}
+					toMove[dbLocatorOf(e.New)] = true
+					newDbName = "tmp/" + e.New.Name
+				}
+				defer newDB.Close()
+				msg := "Copying DB table"
+				if moving {
+					msg = "Moving DB table"
+				}
+				log.Info(msg, "req", e.Req, "old_db_type", e.Old.Type, "old_db_name", e.Old.Name, "old_table", e.Old.Table,
+					"new_db_type", e.New.Type, "new_db_name", newDbName, "new_table", e.Old.Table)
+				oldTable := table.New(oldDB, []byte(e.Old.Table))
+				newTable := table.New(newDB, []byte(e.New.Table))
 				it := oldTable.NewIterator(nil, nil)
 				defer it.Release()
 				for it.Next() {
@@ -291,9 +314,11 @@ func migrateComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName]k
 					if err != nil {
 						return err
 					}
-					err = oldTable.Delete(it.Key())
-					if err != nil {
-						return err
+					if moving {
+						err = oldTable.Delete(it.Key())
+						if err != nil {
+							return err
+						}
 					}
 				}
 				return nil
@@ -302,43 +327,12 @@ func migrateComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName]k
 				return err
 			}
 		}
-		return writeCleanTableRecords(dbTypes, byReq)
 	}
 
-	// universal approach: rebuild
-	for _, e := range byReq {
-		err := func() error {
-			oldDB, err := dbTypes[e.Old.Type].OpenDB(e.Old.Name)
-			if err != nil {
-				return err
-			}
-			defer oldDB.Close()
-			newDB, err := tmpDbTypes[e.New.Type].OpenDB(e.New.Name)
-			if err != nil {
-				return err
-			}
-			defer newDB.Close()
-			log.Info("Copying DB table", "req", e.Req, "old_db_type", e.Old.Type, "old_db_name", e.Old.Name, "old_table", e.Old.Table,
-				"new_db_type", e.New.Type, "new_db_name", "tmp/"+e.New.Name, "new_table", e.Old.Table)
-			oldTable := table.New(oldDB, []byte(e.Old.Table))
-			newTable := table.New(newDB, []byte(e.New.Table))
-			it := oldTable.NewIterator(nil, nil)
-			defer it.Release()
-			for it.Next() {
-				err := newTable.Put(it.Key(), it.Value())
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		}()
-		if err != nil {
-			return err
-		}
-	}
+	// drop unused DBs
 	dropped := make(map[multidb.DBLocator]bool)
 	for _, e := range byReq {
-		if dropped[dbLocatorOf(e.Old)] {
+		if inUse[dbLocatorOf(e.Old)] || dropped[dbLocatorOf(e.Old)] {
 			continue
 		}
 		dropped[dbLocatorOf(e.Old)] = true
@@ -349,9 +343,10 @@ func migrateComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName]k
 			return err
 		}
 	}
+	// move tmp DBs
 	moved := make(map[multidb.DBLocator]bool)
 	for _, e := range byReq {
-		if moved[dbLocatorOf(e.New)] {
+		if !toMove[dbLocatorOf(e.New)] || moved[dbLocatorOf(e.New)] {
 			continue
 		}
 		moved[dbLocatorOf(e.New)] = true
