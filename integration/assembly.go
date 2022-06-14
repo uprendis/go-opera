@@ -150,7 +150,7 @@ func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 	} else {
 		wdbs = dbs
 	}
-	wdbs = WrapDatabaseWithSummary(wdbs)
+	//wdbs = WrapDatabaseWithSummary(wdbs)
 	gdb, cdb := getStores(wdbs, cfg)
 	defer func() {
 		if err != nil {
