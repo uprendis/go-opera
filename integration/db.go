@@ -42,8 +42,12 @@ func DefaultDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheCo
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
 			"gossip": {
-				Cache:   scale(256 * opt.MiB),
-				Fdlimit: fdlimit*256/296 + 1,
+				Cache:   scale(128 * opt.MiB),
+				Fdlimit: fdlimit*128/296 + 1,
+			},
+			"evm": {
+				Cache:   scale(128 * opt.MiB),
+				Fdlimit: fdlimit*128/296 + 1,
 			},
 			"lachesis": {
 				Cache:   scale(8 * opt.MiB),
