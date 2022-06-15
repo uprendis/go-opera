@@ -70,8 +70,9 @@ func fixDirty(ctx *cli.Context) error {
 	_ = cdb.Close()
 
 	log.Info("Clearing DBs dirty flags")
+	id := bigendian.Uint64ToBytes(uint64(time.Now().UnixNano()))
 	for typ, producer := range dbTypes {
-		err := clearDirtyFlags(producer)
+		err := clearDirtyFlags(id, producer)
 		if err != nil {
 			log.Crit("Failed to write clean FlushID", "type", typ, "err", err)
 		}
@@ -159,8 +160,7 @@ func eraseTable(name string, producer kvdb.IterableDBProducer) error {
 }
 
 // clearDirtyFlags - writes the CleanPrefix into all databases
-func clearDirtyFlags(rawProducer kvdb.IterableDBProducer) error {
-	id := bigendian.Uint64ToBytes(uint64(time.Now().UnixNano()))
+func clearDirtyFlags(id []byte, rawProducer kvdb.IterableDBProducer) error {
 	names := rawProducer.Names()
 	for _, name := range names {
 		db, err := rawProducer.OpenDB(name)

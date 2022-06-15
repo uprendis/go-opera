@@ -4,7 +4,9 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
+	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
@@ -114,8 +116,9 @@ func dbMigrate(ctx *cli.Context) error {
 			}
 		}
 	}
+	id := bigendian.Uint64ToBytes(uint64(time.Now().UnixNano()))
 	for typ, producer := range dbTypes {
-		err := clearDirtyFlags(producer)
+		err := clearDirtyFlags(id, producer)
 		if err != nil {
 			log.Crit("Failed to write clean FlushID", "type", typ, "err", err)
 		}
