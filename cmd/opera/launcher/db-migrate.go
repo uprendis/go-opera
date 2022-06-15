@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
@@ -282,6 +283,7 @@ func migrateComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName]k
 				if err != nil {
 					return err
 				}
+				oldDB = batched.Wrap(oldDB)
 				defer oldDB.Close()
 				var newDB kvdb.Store
 				newDbName := e.New.Name
@@ -298,6 +300,7 @@ func migrateComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName]k
 					toMove[dbLocatorOf(e.New)] = true
 					newDbName = "tmp/" + e.New.Name
 				}
+				newDB = batched.Wrap(newDB)
 				defer newDB.Close()
 				msg := "Copying DB table"
 				if moving {
