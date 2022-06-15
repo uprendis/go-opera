@@ -24,21 +24,30 @@ func DefaultRoutingConfig() RoutingConfig {
 	}
 }
 
-func MakeFlushableMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, error) {
+func MakeFlushableMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, func(), error) {
 	flushables := make(map[multidb.TypeName]kvdb.FullDBProducer)
 	var flushID []byte
 	var err error
+	var closeDBs func()
 	for typ, producer := range rawProducers {
 		existingDBs := producer.Names()
 		flushableDB := flushable.NewSyncedPool(producer, FlushIDKey)
+		prevCloseDBs := closeDBs
+		closeDBs = func() {
+			if prevCloseDBs != nil {
+				prevCloseDBs()
+			}
+			_ = flushableDB.Close()
+		}
 		flushID, err = flushableDB.Initialize(existingDBs, flushID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open existing databases: %v", err)
+			return nil, nil, fmt.Errorf("failed to open existing databases: %v", err)
 		}
 		flushables[typ] = cachedproducer.WrapAll(flushableDB)
 	}
 
-	return makeMultiProducer(flushables, cfg)
+	p, err := makeMultiProducer(flushables, cfg)
+	return p, closeDBs, err
 }
 
 func MakeRawMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, error) {
@@ -47,7 +56,8 @@ func MakeRawMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableDBProdu
 		flushables[typ] = cachedproducer.WrapAll(&DummyFlushableProducer{producer})
 	}
 
-	return makeMultiProducer(flushables, cfg)
+	p, err := makeMultiProducer(flushables, cfg)
+	return p, err
 }
 
 func makeMultiProducer(producers map[multidb.TypeName]kvdb.FullDBProducer, cfg RoutingConfig) (kvdb.FullDBProducer, error) {

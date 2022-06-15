@@ -7,8 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/Fantom-foundation/go-opera/integration"
 )
 
 var (

@@ -121,27 +121,27 @@ func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) 
 	return nil
 }
 
-func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, emptyStart bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, error) {
+func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, emptyStart bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func(), error) {
 	if emptyStart {
 		if g == nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, fmt.Errorf("missing --genesis flag for an empty datadir")
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
 		// open raw DBs for performance reasons
 		dbs, err := MakeRawMultiProducer(rawProducers, cfg.DBs.Routing)
 		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, fmt.Errorf("failed to make DB multi-producer: %v", err)
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB multi-producer: %v", err)
 		}
 
 		err = applyGenesis(dbs, *g, cfg)
 		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, fmt.Errorf("failed to apply genesis state: %v", err)
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to apply genesis state: %v", err)
 		}
 	}
 
 	// open flushable DBs
-	dbs, err := MakeFlushableMultiProducer(rawProducers, cfg.DBs.Routing)
+	dbs, closeDBs, err := MakeFlushableMultiProducer(rawProducers, cfg.DBs.Routing)
 	if err != nil {
-		return nil, nil, nil, nil, gossip.BlockProc{}, err
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 	var wdbs kvdb.FlushableDBProducer
 	// final DB wrappers
@@ -150,12 +150,15 @@ func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 	} else {
 		wdbs = dbs
 	}
-	//wdbs = WrapDatabaseWithSummary(wdbs)
+	wdbs = WrapDatabaseWithSummary(wdbs)
 	gdb, cdb := getStores(wdbs, cfg)
 	defer func() {
 		if err != nil {
 			gdb.Close()
 			cdb.Close()
+			if closeDBs != nil {
+				closeDBs()
+			}
 		}
 	}()
 
@@ -163,35 +166,35 @@ func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 	genesisID := gdb.GetGenesisID()
 	if genesisID == nil {
 		err = errors.New("malformed chainstore: genesis ID is not written")
-		return nil, nil, nil, nil, gossip.BlockProc{}, err
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 	if g != nil {
 		if *genesisID != g.GenesisID {
 			err = &GenesisMismatchError{*genesisID, g.GenesisID}
-			return nil, nil, nil, nil, gossip.BlockProc{}, err
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 		}
 	}
 
 	engine, vecClock, blockProc, err := rawMakeEngine(gdb, cdb, nil, cfg)
 	if err != nil {
 		err = fmt.Errorf("failed to make engine: %v", err)
-		return nil, nil, nil, nil, gossip.BlockProc{}, err
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 
 	err = gdb.Commit()
 	if err != nil {
 		err = fmt.Errorf("failed to commit DBs: %v", err)
-		return nil, nil, nil, nil, gossip.BlockProc{}, err
+		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 
-	return engine, vecClock, gdb, cdb, blockProc, nil
+	return engine, vecClock, gdb, cdb, blockProc, closeDBs, nil
 }
 
 // MakeEngine makes consensus engine from config.
-func MakeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc) {
+func MakeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func()) {
 	firstLaunch := dropAllDBsIfInterrupted(rawProducers)
 
-	engine, vecClock, gdb, cdb, blockProc, err := makeEngine(rawProducers, g, firstLaunch, cfg)
+	engine, vecClock, gdb, cdb, blockProc, closeDBs, err := makeEngine(rawProducers, g, firstLaunch, cfg)
 	if err != nil {
 		if firstLaunch {
 			for _, producer := range rawProducers {
@@ -209,7 +212,7 @@ func MakeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 		log.Info("Genesis is already written", "name", rules.Name, "id", rules.NetworkID, "genesis", genesisID.String())
 	}
 
-	return engine, vecClock, gdb, cdb, blockProc
+	return engine, vecClock, gdb, cdb, blockProc, closeDBs
 }
 
 // SetAccountKey sets key into accounts manager and unlocks it with pswd.

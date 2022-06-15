@@ -9,6 +9,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
@@ -147,6 +148,7 @@ func eraseTable(name string, producer kvdb.IterableDBProducer) error {
 	if err != nil {
 		return fmt.Errorf("unable to open DB %s; %s", name, err)
 	}
+	db = batched.Wrap(db)
 	defer db.Close()
 	it := db.NewIterator(nil, nil)
 	defer it.Release()

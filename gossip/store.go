@@ -17,6 +17,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/evmstore"
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/snap2kvdb"
+	"github.com/Fantom-foundation/go-opera/utils/eventid"
 	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
 	"github.com/Fantom-foundation/go-opera/utils/switchable"
 )
@@ -65,7 +66,8 @@ type Store struct {
 	epochStore atomic.Value
 
 	cache struct {
-		Events                 *wlru.Cache  `cache:"-"` // store by pointer
+		Events                 *wlru.Cache `cache:"-"` // store by pointer
+		EventIDs               *eventid.Cache
 		EventsHeaders          *wlru.Cache  `cache:"-"` // store by pointer
 		Blocks                 *wlru.Cache  `cache:"-"` // store by pointer
 		BlockHashes            *wlru.Cache  `cache:"-"` // store by pointer
@@ -79,6 +81,8 @@ type Store struct {
 		KvdbEvmSnap            atomic.Value // store by pointer
 		UpgradeHeights         atomic.Value // store by pointer
 		Genesis                atomic.Value // store by value
+		LlrBlockVotesIndex     *VotesCache  // store by value
+		LlrEpochVoteIndex      *VotesCache  // store by value
 	}
 
 	mutex struct {
@@ -136,9 +140,14 @@ func (s *Store) initCache() {
 	eventsHeadersCacheSize := nominalSize * uint(eventsHeadersNum)
 	s.cache.EventsHeaders = s.makeCache(eventsHeadersCacheSize, eventsHeadersNum)
 
+	s.cache.EventIDs = eventid.NewCache(s.cfg.Cache.EventsIDsNum)
+
 	blockEpochStatesNum := s.cfg.Cache.BlockEpochStateNum
 	blockEpochStatesSize := nominalSize * uint(blockEpochStatesNum)
 	s.cache.BlockEpochStateHistory = s.makeCache(blockEpochStatesSize, blockEpochStatesNum)
+
+	s.cache.LlrBlockVotesIndex = NewVotesCache(s.cfg.Cache.LlrBlockVotesIndexes, s.flushLlrBlockVoteWeight)
+	s.cache.LlrEpochVoteIndex = NewVotesCache(s.cfg.Cache.LlrEpochVotesIndexes, s.flushLlrEpochVoteWeight)
 }
 
 // Close closes underlying database.
@@ -205,6 +214,8 @@ func (s *Store) Commit() error {
 	s.FlushLastBVs()
 	s.FlushLastEV()
 	s.FlushLlrState()
+	s.cache.LlrBlockVotesIndex.FlushMutated(s.flushLlrBlockVoteWeight)
+	s.cache.LlrEpochVoteIndex.FlushMutated(s.flushLlrEpochVoteWeight)
 	es := s.getAnyEpochStore()
 	if es != nil {
 		es.FlushHeads()

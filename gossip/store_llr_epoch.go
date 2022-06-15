@@ -32,9 +32,19 @@ func (s *Store) iterateEpochVotesRLP(prefix []byte, f func(key []byte, ev rlp.Ra
 	}
 }
 
+func (s *Store) flushLlrEpochVoteWeight(cKey VotesCacheID, value VotesCacheValue) {
+	key := append(cKey.Epoch.Bytes(), cKey.V[:]...)
+	s.flushLlrVoteWeight(s.table.LlrEpochVoteIndex, key, value.weight, value.set)
+}
+
 func (s *Store) AddLlrEpochVoteWeight(epoch idx.Epoch, ev hash.Hash, val idx.Validator, vals idx.Validator, diff pos.Weight) pos.Weight {
 	key := append(epoch.Bytes(), ev[:]...)
-	return s.addLlrVoteWeight(s.table.LlrEpochVoteIndex, key, val, vals, diff)
+	cKey := VotesCacheID{
+		Block: 0,
+		Epoch: epoch,
+		V:     ev,
+	}
+	return s.addLlrVoteWeight(s.cache.LlrEpochVoteIndex, s.table.LlrEpochVoteIndex, cKey, key, val, vals, diff)
 }
 
 func (s *Store) SetLlrEpochResult(epoch idx.Epoch, ev hash.Hash) {
