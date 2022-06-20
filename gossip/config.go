@@ -267,7 +267,7 @@ func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 			BlocksNum:            scale.I(5000),
 			BlocksSize:           scale.U(512 * opt.KiB),
 			BlockEpochStateNum:   scale.I(8),
-			LlrBlockVotesIndexes: scale.I(500),
+			LlrBlockVotesIndexes: scale.I(200),
 			LlrEpochVotesIndexes: scale.I(20),
 		},
 		EVM:                 evmstore.DefaultStoreConfig(scale),

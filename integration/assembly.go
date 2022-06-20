@@ -156,9 +156,7 @@ func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 		if err != nil {
 			gdb.Close()
 			cdb.Close()
-			if closeDBs != nil {
-				closeDBs()
-			}
+			closeDBs()
 		}
 	}()
 

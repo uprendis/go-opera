@@ -28,22 +28,20 @@ func MakeFlushableMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableD
 	flushables := make(map[multidb.TypeName]kvdb.FullDBProducer)
 	var flushID []byte
 	var err error
-	var closeDBs func()
+	var closeDBs = func() {}
 	for typ, producer := range rawProducers {
 		existingDBs := producer.Names()
-		flushableDB := flushable.NewSyncedPool(producer, FlushIDKey)
+		flushablePool := flushable.NewSyncedPool(producer, FlushIDKey)
 		prevCloseDBs := closeDBs
 		closeDBs = func() {
-			if prevCloseDBs != nil {
-				prevCloseDBs()
-			}
-			_ = flushableDB.Close()
+			prevCloseDBs()
+			_ = flushablePool.Close()
 		}
-		flushID, err = flushableDB.Initialize(existingDBs, flushID)
+		flushID, err = flushablePool.Initialize(existingDBs, flushID)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to open existing databases: %v", err)
 		}
-		flushables[typ] = cachedproducer.WrapAll(flushableDB)
+		flushables[typ] = cachedproducer.WrapAll(flushablePool)
 	}
 
 	p, err := makeMultiProducer(flushables, cfg)
