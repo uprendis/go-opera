@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
 	"github.com/Fantom-foundation/go-opera/inter/ibr"
@@ -11,8 +12,30 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
 
+func (s *Store) WrapTablesAsBatched() (unwrap func()) {
+	origTables := s.table
+
+	batchedBlocks := batched.Wrap(s.table.Blocks)
+	s.table.Blocks = batchedBlocks
+
+	batchedBlockHashes := batched.Wrap(s.table.BlockHashes)
+	s.table.BlockHashes = batchedBlockHashes
+
+	unwrapEVM := s.evm.WrapTablesAsBatched()
+	return func() {
+		unwrapEVM()
+		_ = batchedBlocks.Flush()
+		_ = batchedBlockHashes.Flush()
+		s.table = origTables
+	}
+}
+
 // ApplyGenesis writes initial state.
 func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err error) {
+	// use batching wrapper for hot tables
+	unwrap := s.WrapTablesAsBatched()
+	defer unwrap()
+
 	// write epochs
 	var topEr *ier.LlrIdxFullEpochRecord
 	g.Epochs.ForEach(func(er ier.LlrIdxFullEpochRecord) bool {
@@ -46,6 +69,10 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 		s.WriteFullBlockRecord(br)
 		return true
 	})
+	err = s.evm.EvmLogs.Flush()
+	if err != nil {
+		return genesisHash, err
+	}
 
 	// write EVM items
 	err = s.evm.ApplyGenesis(g)

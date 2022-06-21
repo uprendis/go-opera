@@ -6,8 +6,7 @@ import (
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
-
+	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -15,28 +14,34 @@ import (
 const MaxTopicsCount = 5 // count is limited hard to 5 by EVM (see LOG0...LOG4 ops)
 
 var (
-	ErrEmptyTopics  = fmt.Errorf("Empty topics")
-	ErrTooBigTopics = fmt.Errorf("Too big topics")
+	ErrEmptyTopics  = fmt.Errorf("empty topics")
+	ErrTooBigTopics = fmt.Errorf("too many topics")
 )
 
 // Index is a specialized indexes for log records storing and fetching.
 type Index struct {
-	db    kvdb.Store
 	table struct {
 		// topic+topicN+(blockN+TxHash+logIndex) -> topic_count (where topicN=0 is for address)
-		Topic kvdb.Store `table:"t"`
+		Topic *batched.Store `table:"t"`
 		// (blockN+TxHash+logIndex) -> ordered topic_count topics, blockHash, address, data
-		Logrec kvdb.Store `table:"r"`
+		Logrec *batched.Store `table:"r"`
 	}
 }
 
 // New Index instance.
-func New(db kvdb.Store) *Index {
-	tt := &Index{
-		db: db,
-	}
+func New(dbs kvdb.DBProducer) *Index {
+	tt := &Index{}
 
-	table.MigrateTables(&tt.table, tt.db)
+	db, err := dbs.OpenDB("evm-logs/t")
+	if err != nil {
+		panic(err)
+	}
+	tt.table.Topic = batched.Wrap(db)
+	db, err = dbs.OpenDB("evm-logs/r")
+	if err != nil {
+		panic(err)
+	}
+	tt.table.Logrec = batched.Wrap(db)
 
 	return tt
 }
@@ -144,7 +149,7 @@ func (tt *Index) MustPush(recs ...*types.Log) {
 	}
 }
 
-// Write log record to database.
+// Push log record to database batch
 func (tt *Index) Push(recs ...*types.Log) error {
 	for _, rec := range recs {
 		if len(rec.Topics) > MaxTopicsCount {
@@ -192,4 +197,12 @@ func (tt *Index) Push(recs ...*types.Log) error {
 	}
 
 	return nil
+}
+
+func (tt *Index) Flush() error {
+	err := tt.table.Topic.Flush()
+	if err != nil {
+		return err
+	}
+	return tt.table.Logrec.Flush()
 }
