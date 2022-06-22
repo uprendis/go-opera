@@ -20,6 +20,11 @@ func DefaultRoutingConfig() RoutingConfig {
 			"": {
 				Type: "leveldb",
 			},
+			"evm-logs": {
+				Type:  "leveldb",
+				Name:  "evm",
+				Table: "L",
+			},
 		},
 	}
 }
