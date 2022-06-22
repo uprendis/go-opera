@@ -206,3 +206,8 @@ func (tt *Index) Flush() error {
 	}
 	return tt.table.Logrec.Flush()
 }
+
+func (tt *Index) Close() {
+	_ = tt.table.Topic.Close()
+	_ = tt.table.Logrec.Close()
+}

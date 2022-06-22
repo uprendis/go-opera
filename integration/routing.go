@@ -18,12 +18,30 @@ func DefaultRoutingConfig() RoutingConfig {
 	return RoutingConfig{
 		Table: map[string]multidb.Route{
 			"": {
-				Type: "leveldb",
+				Type: "pebble",
 			},
-			"evm-logs": {
-				Type:  "leveldb",
-				Name:  "evm",
+			"lachesis": {
+				Type:  "pebble",
+				Name:  "main",
 				Table: "L",
+			},
+			"gossip": {
+				Type:  "pebble",
+				Name:  "main",
+				Table: "G",
+			},
+			"evm": {
+				Type:  "pebble",
+				Name:  "main",
+				Table: "E",
+			},
+			"gossip/e": {
+				Type:  "pebble",
+				Name:  "events",
+			},
+			"evm/M": {
+				Type:  "pebble",
+				Name:  "evm-data",
 			},
 		},
 	}

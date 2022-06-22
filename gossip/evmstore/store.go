@@ -92,6 +92,7 @@ func (s *Store) Close() {
 	_ = table.CloseTables(&s.table)
 	table.MigrateTables(&s.table, nil)
 	table.MigrateCaches(&s.cache, setnil)
+	s.EvmLogs.Close()
 }
 
 func (s *Store) initCache() {

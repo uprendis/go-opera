@@ -41,29 +41,33 @@ func DefaultDBsConfig(scale func(uint64) uint64, fdlimit uint64) DBsConfig {
 func DefaultDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheConfig {
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
-			"gossip": {
-				Cache:   scale(128 * opt.MiB),
-				Fdlimit: fdlimit*128/296 + 1,
+			"main": {
+				Cache:   scale(21 * opt.MiB),
+				Fdlimit: fdlimit*21/296 + 1,
 			},
-			"evm": {
-				Cache:   scale(128 * opt.MiB),
-				Fdlimit: fdlimit*128/296 + 1,
+			"evm-data": {
+				Cache:   scale(190 * opt.MiB),
+				Fdlimit: fdlimit*190/296 + 1,
 			},
-			"lachesis": {
+			"evm-logs": {
+				Cache:   scale(50 * opt.MiB),
+				Fdlimit: fdlimit*50/296 + 1,
+			},
+			"events": {
+				Cache:   scale(21 * opt.MiB),
+				Fdlimit: fdlimit*21/296 + 1,
+			},
+			"lachesis-%d": {
+				Cache:   scale(6 * opt.MiB),
+				Fdlimit: fdlimit*6/296 + 1,
+			},
+			"gossip-%d": {
 				Cache:   scale(8 * opt.MiB),
 				Fdlimit: fdlimit*8/296 + 1,
 			},
-			"lachesis-%d": {
-				Cache:   scale(16 * opt.MiB),
-				Fdlimit: fdlimit*16/296 + 1,
-			},
-			"gossip-%d": {
-				Cache:   scale(16 * opt.MiB),
-				Fdlimit: fdlimit*16/296 + 1,
-			},
 			"": {
-				Cache:   32 * opt.MiB,
-				Fdlimit: fdlimit/100 + 1,
+				Cache:   64 * opt.MiB,
+				Fdlimit: fdlimit/10 + 1,
 			},
 		},
 	}
