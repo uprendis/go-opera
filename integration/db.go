@@ -18,8 +18,9 @@ import (
 )
 
 type DBsConfig struct {
-	Routing RoutingConfig
-	Cache   DBsCacheConfig
+	Routing      RoutingConfig
+	RuntimeCache DBsCacheConfig
+	GenesisCache DBsCacheConfig
 }
 
 type DBCacheConfig struct {
@@ -33,41 +34,77 @@ type DBsCacheConfig struct {
 
 func DefaultDBsConfig(scale func(uint64) uint64, fdlimit uint64) DBsConfig {
 	return DBsConfig{
-		Routing: DefaultRoutingConfig(),
-		Cache:   DefaultDBsCacheConfig(scale, fdlimit),
+		Routing:      DefaultRoutingConfig(),
+		RuntimeCache: DefaultRuntimeDBsCacheConfig(scale, fdlimit),
+		GenesisCache: DefaultGenesisDBsCacheConfig(scale, fdlimit),
 	}
 }
 
-func DefaultDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheConfig {
+func DefaultRuntimeDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheConfig {
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
 			"main": {
-				Cache:   scale(21 * opt.MiB),
-				Fdlimit: fdlimit*21/296 + 1,
+				Cache:   scale(75 * opt.MiB),
+				Fdlimit: fdlimit*75/350 + 1,
 			},
 			"evm-data": {
-				Cache:   scale(190 * opt.MiB),
-				Fdlimit: fdlimit*190/296 + 1,
+				Cache:   scale(180 * opt.MiB),
+				Fdlimit: fdlimit*180/350 + 1,
 			},
 			"evm-logs": {
 				Cache:   scale(50 * opt.MiB),
-				Fdlimit: fdlimit*50/296 + 1,
+				Fdlimit: fdlimit*50/350 + 1,
 			},
 			"events": {
-				Cache:   scale(21 * opt.MiB),
-				Fdlimit: fdlimit*21/296 + 1,
+				Cache:   scale(25 * opt.MiB),
+				Fdlimit: fdlimit*25/350 + 1,
 			},
 			"lachesis-%d": {
 				Cache:   scale(6 * opt.MiB),
-				Fdlimit: fdlimit*6/296 + 1,
+				Fdlimit: fdlimit*6/350 + 1,
 			},
 			"gossip-%d": {
-				Cache:   scale(8 * opt.MiB),
-				Fdlimit: fdlimit*8/296 + 1,
+				Cache:   scale(14 * opt.MiB),
+				Fdlimit: fdlimit*14/350 + 1,
 			},
 			"": {
-				Cache:   64 * opt.MiB,
-				Fdlimit: fdlimit/10 + 1,
+				Cache:   16 * opt.MiB,
+				Fdlimit: fdlimit/100 + 1,
+			},
+		},
+	}
+}
+
+func DefaultGenesisDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheConfig {
+	return DBsCacheConfig{
+		Table: map[string]DBCacheConfig{
+			"main": {
+				Cache:   scale(698 * opt.MiB),
+				Fdlimit: fdlimit*698/2096 + 1,
+			},
+			"evm-data": {
+				Cache:   scale(698 * opt.MiB),
+				Fdlimit: fdlimit*698/2096 + 1,
+			},
+			"evm-logs": {
+				Cache:   scale(698 * opt.MiB),
+				Fdlimit: fdlimit*698/2096 + 1,
+			},
+			"events": {
+				Cache:   scale(1 * opt.MiB),
+				Fdlimit: fdlimit*1/2096 + 1,
+			},
+			"lachesis-%d": {
+				Cache:   scale(1 * opt.MiB),
+				Fdlimit: fdlimit*1/2096 + 1,
+			},
+			"gossip-%d": {
+				Cache:   scale(1 * opt.MiB),
+				Fdlimit: fdlimit*1/2096 + 1,
+			},
+			"": {
+				Cache:   16 * opt.MiB,
+				Fdlimit: fdlimit/100 + 1,
 			},
 		},
 	}

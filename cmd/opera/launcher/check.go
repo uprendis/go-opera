@@ -17,7 +17,7 @@ import (
 )
 
 func makeRawDbsProducers(cfg *config) map[multidb.TypeName]kvdb.IterableDBProducer {
-	dbsList, err := integration.SupportedDBs(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.Cache)
+	dbsList, err := integration.SupportedDBs(path.Join(cfg.Node.DataDir, "chaindata"), cfg.DBs.RuntimeCache)
 	if err != nil {
 		utils.Fatalf("Failed to initialize DB producers: %v", err)
 	}

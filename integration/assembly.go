@@ -121,13 +121,13 @@ func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) 
 	return nil
 }
 
-func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, emptyStart bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func(), error) {
+func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, emptyStart bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func(), error) {
 	if emptyStart {
 		if g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
 		// open raw DBs for performance reasons
-		dbs, err := MakeRawMultiProducer(rawProducers, cfg.DBs.Routing)
+		dbs, err := MakeRawMultiProducer(genesisProducers, cfg.DBs.Routing)
 		if err != nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB multi-producer: %v", err)
 		}
@@ -139,7 +139,7 @@ func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 	}
 
 	// open flushable DBs
-	dbs, closeDBs, err := MakeFlushableMultiProducer(rawProducers, cfg.DBs.Routing)
+	dbs, closeDBs, err := MakeFlushableMultiProducer(runtimeProducers, cfg.DBs.Routing)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
@@ -189,13 +189,23 @@ func makeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *ge
 }
 
 // MakeEngine makes consensus engine from config.
-func MakeEngine(rawProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func()) {
-	firstLaunch := dropAllDBsIfInterrupted(rawProducers)
+func MakeEngine(chaindataDir string, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func()) {
+	// use increased DB cache for genesis processing
+	genesisProducers, err := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
+	if err != nil {
+		utils.Fatalf("Failed to initialize DB producers: %v", err)
+	}
+	runtimeProducers, err := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
+	if err != nil {
+		utils.Fatalf("Failed to initialize DB producers: %v", err)
+	}
 
-	engine, vecClock, gdb, cdb, blockProc, closeDBs, err := makeEngine(rawProducers, g, firstLaunch, cfg)
+	firstLaunch := dropAllDBsIfInterrupted(runtimeProducers)
+
+	engine, vecClock, gdb, cdb, blockProc, closeDBs, err := makeEngine(genesisProducers, runtimeProducers, g, firstLaunch, cfg)
 	if err != nil {
 		if firstLaunch {
-			for _, producer := range rawProducers {
+			for _, producer := range runtimeProducers {
 				dropAllDBs(producer)
 			}
 		}

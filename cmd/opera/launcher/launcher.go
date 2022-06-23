@@ -296,12 +296,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		g = &gv
 	}
 
-	dbsList, err := integration.SupportedDBs(chaindataDir, cfg.DBs.Cache)
-	if err != nil {
-		utils.Fatalf("Failed to initialize DB producers: %v", err)
-	}
-
-	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(dbsList, g, cfg.AppConfigs())
+	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(chaindataDir, g, cfg.AppConfigs())
 	if genesisStore != nil {
 		_ = genesisStore.Close()
 	}

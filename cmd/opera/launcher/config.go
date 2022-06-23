@@ -393,8 +393,11 @@ func mayMakeAllConfigs(ctx *cli.Context) (*config, error) {
 	if len(cfg.DBs.Routing.Table) == 0 {
 		cfg.DBs.Routing = dbDefault.Routing
 	}
-	if len(cfg.DBs.Cache.Table) == 0 {
-		cfg.DBs.Cache = dbDefault.Cache
+	if len(cfg.DBs.GenesisCache.Table) == 0 {
+		cfg.DBs.GenesisCache = dbDefault.GenesisCache
+	}
+	if len(cfg.DBs.RuntimeCache.Table) == 0 {
+		cfg.DBs.RuntimeCache = dbDefault.RuntimeCache
 	}
 
 	// Apply flags (high priority)

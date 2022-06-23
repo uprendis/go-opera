@@ -12,7 +12,9 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/cachedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
+	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/integration"
@@ -130,7 +132,14 @@ func dbMigrate(ctx *cli.Context) error {
 }
 
 func getDBProducersFor(cfg *config, chaindataDir string) map[multidb.TypeName]kvdb.FullDBProducer {
-	dbTypes, err := integration.SupportedDBs(chaindataDir, cfg.DBs.Cache)
+	dbTypes, err := integration.SupportedDBs(chaindataDir, integration.DBsCacheConfig{
+		Table: map[string]integration.DBCacheConfig{
+			"": {
+				Cache:   1024 * opt.MiB,
+				Fdlimit: uint64(utils.MakeDatabaseHandles() / 2),
+			},
+		},
+	})
 	if err != nil {
 		log.Crit("Failed to construct DB producers", "err", err)
 	}
