@@ -532,6 +532,8 @@ github.com/uprendis/lachesis-base v0.0.0-20220616070500-cb57182bb93a h1:ZfBeh+/c
 github.com/uprendis/lachesis-base v0.0.0-20220616070500-cb57182bb93a/go.mod h1:CFMonaK1v/QHwpjLszuycFDgLXNazZqZxciwhKwXDVQ=
 github.com/uprendis/lachesis-base v0.0.0-20220616080225-be108dd8e19c h1:tkbq/RBhKoHq4wmu6jXp1SS3EB0MT0qFcH9/JgpJIMM=
 github.com/uprendis/lachesis-base v0.0.0-20220616080225-be108dd8e19c/go.mod h1:CFMonaK1v/QHwpjLszuycFDgLXNazZqZxciwhKwXDVQ=
+github.com/uprendis/lachesis-base v0.0.0-20220623102719-abff50717854 h1:xiXwrgJhNNPaCxuio5SUBIjBgehOUxCy7NAA14e7tcA=
+github.com/uprendis/lachesis-base v0.0.0-20220623102719-abff50717854/go.mod h1:CFMonaK1v/QHwpjLszuycFDgLXNazZqZxciwhKwXDVQ=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=

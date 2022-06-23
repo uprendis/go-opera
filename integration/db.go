@@ -51,9 +51,13 @@ func DefaultRuntimeDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBs
 				Cache:   scale(180 * opt.MiB),
 				Fdlimit: fdlimit*180/350 + 1,
 			},
-			"evm-logs": {
-				Cache:   scale(50 * opt.MiB),
-				Fdlimit: fdlimit*50/350 + 1,
+			"evm-logs-topics": {
+				Cache:   scale(30 * opt.MiB),
+				Fdlimit: fdlimit*30/350 + 1,
+			},
+			"evm-logs-recs": {
+				Cache:   scale(20 * opt.MiB),
+				Fdlimit: fdlimit*20/350 + 1,
 			},
 			"events": {
 				Cache:   scale(25 * opt.MiB),
@@ -79,16 +83,20 @@ func DefaultGenesisDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBs
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
 			"main": {
-				Cache:   scale(698 * opt.MiB),
-				Fdlimit: fdlimit*698/2096 + 1,
+				Cache:   scale(524 * opt.MiB),
+				Fdlimit: fdlimit*512/2048 + 1,
 			},
 			"evm-data": {
-				Cache:   scale(698 * opt.MiB),
-				Fdlimit: fdlimit*698/2096 + 1,
+				Cache:   scale(512 * opt.MiB),
+				Fdlimit: fdlimit*512/2048 + 1,
 			},
-			"evm-logs": {
-				Cache:   scale(698 * opt.MiB),
-				Fdlimit: fdlimit*698/2096 + 1,
+			"evm-logs-recs": {
+				Cache:   scale(512 * opt.MiB),
+				Fdlimit: fdlimit*512/2048 + 1,
+			},
+			"evm-logs-topics": {
+				Cache:   scale(512 * opt.MiB),
+				Fdlimit: fdlimit*512/2048 + 1,
 			},
 			"events": {
 				Cache:   scale(1 * opt.MiB),
