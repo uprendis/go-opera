@@ -101,22 +101,6 @@ func dbMigrate(ctx *cli.Context) error {
 		if err != nil {
 			log.Crit("Failed to migrate component", "err", err)
 		}
-		// drop unused DBs
-		used := make(map[multidb.DBLocator]bool)
-		for _, e := range component {
-			used[dbLocatorOf(e.New)] = true
-		}
-		for _, e := range component {
-			if used[dbLocatorOf(e.Old)] {
-				continue
-			}
-			log.Info("Dropping unused DB", "db_type", e.Old.Type, "db_name", e.Old.Name)
-			deletePath := path.Join(cfg.Node.DataDir, "chaindata", string(e.Old.Type), e.Old.Name)
-			err := os.RemoveAll(deletePath)
-			if err != nil {
-				log.Crit("Failed to erase unused DB", "path", deletePath, "err", err)
-			}
-		}
 	}
 	id := bigendian.Uint64ToBytes(uint64(time.Now().UnixNano()))
 	for typ, producer := range dbTypes {

@@ -218,9 +218,9 @@ type VotesCache struct {
 
 func NewVotesCache(maxSize int, evictedFn func(VotesCacheID, VotesCacheValue)) *VotesCache {
 	votes, _ := simplewlru.NewWithEvict(uint(maxSize), maxSize, func(key interface{}, _value interface{}) {
-		value := _value.(VotesCacheValue)
+		value := _value.(*VotesCacheValue)
 		if value.mutated {
-			evictedFn(key.(VotesCacheID), value)
+			evictedFn(key.(VotesCacheID), *value)
 		}
 	})
 	return &VotesCache{
@@ -232,23 +232,21 @@ func (c *VotesCache) FlushMutated(write func(VotesCacheID, VotesCacheValue)) {
 	keys := c.votes.Keys()
 	for _, k := range keys {
 		val_, _ := c.votes.Peek(k)
-		val := val_.(VotesCacheValue)
+		val := val_.(*VotesCacheValue)
 		if val.mutated {
-			write(k.(VotesCacheID), val)
+			write(k.(VotesCacheID), *val)
+			val.mutated = false
 		}
-		val.mutated = false
-		c.votes.Add(k, val, nominalSize)
 	}
 }
 
 func (c *VotesCache) Get(key VotesCacheID) *VotesCacheValue {
 	if v, ok := c.votes.Get(key); ok {
-		val := v.(VotesCacheValue)
-		return &val
+		return v.(*VotesCacheValue)
 	}
 	return nil
 }
 
 func (c *VotesCache) Add(key VotesCacheID, val VotesCacheValue) {
-	c.votes.Add(key, val, nominalSize)
+	c.votes.Add(key, &val, nominalSize)
 }

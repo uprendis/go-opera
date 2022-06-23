@@ -81,8 +81,8 @@ type Store struct {
 		KvdbEvmSnap            atomic.Value // store by pointer
 		UpgradeHeights         atomic.Value // store by pointer
 		Genesis                atomic.Value // store by value
-		LlrBlockVotesIndex     *VotesCache  // store by value
-		LlrEpochVoteIndex      *VotesCache  // store by value
+		LlrBlockVotesIndex     *VotesCache  // store by pointer
+		LlrEpochVoteIndex      *VotesCache  // store by pointer
 	}
 
 	mutex struct {

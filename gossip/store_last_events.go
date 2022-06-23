@@ -76,6 +76,7 @@ func (es *epochStore) FlushLastEvents() {
 		b = append(b, head...)
 	}
 
+	println("put last events", len(b))
 	if err := es.table.LastEvents.Put([]byte{}, b); err != nil {
 		es.Log.Crit("Failed to put key-value", "err", err)
 	}

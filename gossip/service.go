@@ -197,6 +197,7 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	svc.blockProcTasks = workers.New(new(sync.WaitGroup), svc.blockProcTasksDone, 1)
 
 	// load epoch DB
+	println("load epoch db", svc.store.GetEpoch())
 	svc.store.loadEpochStore(svc.store.GetEpoch())
 	es := svc.store.getEpochStore(svc.store.GetEpoch())
 	svc.dagIndexer.Reset(svc.store.GetValidators(), es.table.DagIndex, func(id hash.Event) dag.Event {
@@ -459,6 +460,12 @@ func (s *Service) Start() error {
 		// halt syncing
 		s.stopped = true
 	}
+	if s.store.GetLastEvent(3, 1) == nil {
+		println("++++++ nil")
+	} else {
+		println("++++++", s.store.GetLastEvent(3, 1).String())
+	}
+	println("++++++", s.store.GetBlockState().LastBlock.Idx)
 
 	return nil
 }
@@ -495,6 +502,12 @@ func (s *Service) Stop() error {
 	s.blockProcWg.Wait()
 	close(s.blockProcTasksDone)
 	s.store.evm.Flush(s.store.GetBlockState())
+	if s.store.GetLastEvent(3, 1) == nil {
+		println("^^^^^^ nil")
+	} else {
+		println("^^^^^^^", s.store.GetLastEvent(3, 1).String())
+	}
+	println("^^^^^^", s.store.GetBlockState().LastBlock.Idx)
 	return s.store.Commit()
 }
 

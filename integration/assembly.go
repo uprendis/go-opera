@@ -140,11 +140,13 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		}
 	}
 
+	println("__________1_")
 	// open flushable DBs
 	dbs, closeDBs, err := MakeFlushableMultiProducer(runtimeProducers, cfg.DBs.Routing)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
+	println("__________1.1_")
 	var wdbs kvdb.FlushableDBProducer
 	// final DB wrappers
 	if metrics.Enabled {
@@ -153,6 +155,7 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		wdbs = dbs
 	}
 	wdbs = WrapDatabaseWithSummary(wdbs)
+	println("__________2_")
 	gdb, cdb := getStores(wdbs, cfg)
 	defer func() {
 		if err != nil {
@@ -162,6 +165,7 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		}
 	}()
 
+	println("__________3_")
 	// compare genesis with the input
 	genesisID := gdb.GetGenesisID()
 	if genesisID == nil {
@@ -186,6 +190,7 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		err = fmt.Errorf("failed to commit DBs: %v", err)
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
+	println("__________4_")
 
 	return engine, vecClock, gdb, cdb, blockProc, closeDBs, nil
 }
