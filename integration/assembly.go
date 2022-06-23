@@ -4,6 +4,8 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -190,6 +192,12 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 
 // MakeEngine makes consensus engine from config.
 func MakeEngine(chaindataDir string, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func()) {
+	if err := os.MkdirAll(path.Join(chaindataDir, "leveldb"), 0700); err != nil {
+		utils.Fatalf("Failed to create chaindata/leveldb directory: %v", err)
+	}
+	if err := os.MkdirAll(path.Join(chaindataDir, "pebble"), 0700); err != nil {
+		utils.Fatalf("Failed to create chaindata/pebble directory: %v", err)
+	}
 	// use increased DB cache for genesis processing
 	genesisProducers, err := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
 	if err != nil {

@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"sort"
 	"strings"
@@ -283,20 +282,13 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	errlock.SetDefaultDatadir(cfg.Node.DataDir)
 	errlock.Check()
 
-	chaindataDir := path.Join(cfg.Node.DataDir, "chaindata")
-	if err := os.MkdirAll(path.Join(chaindataDir, "leveldb"), 0700); err != nil {
-		utils.Fatalf("Failed to create chaindata/leveldb directory: %v", err)
-	}
-	if err := os.MkdirAll(path.Join(chaindataDir, "pebble"), 0700); err != nil {
-		utils.Fatalf("Failed to create chaindata/pebble directory: %v", err)
-	}
 	var g *genesis.Genesis
 	if genesisStore != nil {
 		gv := genesisStore.Genesis()
 		g = &gv
 	}
 
-	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(chaindataDir, g, cfg.AppConfigs())
+	engine, dagIndex, gdb, cdb, blockProc, closeDBs := integration.MakeEngine(path.Join(cfg.Node.DataDir, "chaindata"), g, cfg.AppConfigs())
 	if genesisStore != nil {
 		_ = genesisStore.Close()
 	}
