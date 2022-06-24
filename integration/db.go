@@ -92,11 +92,7 @@ func DefaultGenesisDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBs
 				Cache:   scale(1 * opt.MiB),
 				Fdlimit: fdlimit*1/3072 + 1,
 			},
-			"lachesis-%d": {
-				Cache:   scale(1 * opt.MiB),
-				Fdlimit: fdlimit*1/3072 + 1,
-			},
-			"gossip-%d": {
+			"epoch-%d": {
 				Cache:   scale(1 * opt.MiB),
 				Fdlimit: fdlimit*1/3072 + 1,
 			},
