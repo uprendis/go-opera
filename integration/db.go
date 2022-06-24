@@ -46,35 +46,35 @@ func DefaultRuntimeDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBs
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
 			"main": {
-				Cache:   scale(75 * opt.MiB),
-				Fdlimit: fdlimit*75/350 + 1,
+				Cache:   scale(107 * opt.MiB),
+				Fdlimit: fdlimit*107/500 + 1,
 			},
 			"evm-data": {
-				Cache:   scale(180 * opt.MiB),
-				Fdlimit: fdlimit*180/350 + 1,
+				Cache:   scale(257 * opt.MiB),
+				Fdlimit: fdlimit*257/500 + 1,
 			},
 			"evm-logs-topics": {
-				Cache:   scale(30 * opt.MiB),
-				Fdlimit: fdlimit*30/350 + 1,
+				Cache:   scale(43 * opt.MiB),
+				Fdlimit: fdlimit*43/500 + 1,
 			},
 			"evm-logs-recs": {
-				Cache:   scale(20 * opt.MiB),
-				Fdlimit: fdlimit*20/350 + 1,
+				Cache:   scale(30 * opt.MiB),
+				Fdlimit: fdlimit*30/500 + 1,
 			},
 			"events": {
-				Cache:   scale(25 * opt.MiB),
-				Fdlimit: fdlimit*25/350 + 1,
+				Cache:   scale(35 * opt.MiB),
+				Fdlimit: fdlimit*35/500 + 1,
 			},
 			"lachesis-%d": {
-				Cache:   scale(6 * opt.MiB),
-				Fdlimit: fdlimit*6/350 + 1,
+				Cache:   scale(8 * opt.MiB),
+				Fdlimit: fdlimit*8/500 + 1,
 			},
 			"gossip-%d": {
-				Cache:   scale(14 * opt.MiB),
-				Fdlimit: fdlimit*14/350 + 1,
+				Cache:   scale(20 * opt.MiB),
+				Fdlimit: fdlimit*20/500 + 1,
 			},
 			"": {
-				Cache:   16 * opt.MiB,
+				Cache:   32 * opt.MiB,
 				Fdlimit: fdlimit/100 + 1,
 			},
 		},
@@ -85,32 +85,32 @@ func DefaultGenesisDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBs
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
 			"main": {
-				Cache:   scale(524 * opt.MiB),
-				Fdlimit: fdlimit*512/2048 + 1,
+				Cache:   scale(768 * opt.MiB),
+				Fdlimit: fdlimit*768/3072 + 1,
 			},
 			"evm-data": {
-				Cache:   scale(512 * opt.MiB),
-				Fdlimit: fdlimit*512/2048 + 1,
+				Cache:   scale(768 * opt.MiB),
+				Fdlimit: fdlimit*768/3072 + 1,
 			},
 			"evm-logs-recs": {
-				Cache:   scale(512 * opt.MiB),
-				Fdlimit: fdlimit*512/2048 + 1,
+				Cache:   scale(768 * opt.MiB),
+				Fdlimit: fdlimit*768/3072 + 1,
 			},
 			"evm-logs-topics": {
-				Cache:   scale(512 * opt.MiB),
-				Fdlimit: fdlimit*512/2048 + 1,
+				Cache:   scale(768 * opt.MiB),
+				Fdlimit: fdlimit*768/3072 + 1,
 			},
 			"events": {
 				Cache:   scale(1 * opt.MiB),
-				Fdlimit: fdlimit*1/2096 + 1,
+				Fdlimit: fdlimit*1/3072 + 1,
 			},
 			"lachesis-%d": {
 				Cache:   scale(1 * opt.MiB),
-				Fdlimit: fdlimit*1/2096 + 1,
+				Fdlimit: fdlimit*1/3072 + 1,
 			},
 			"gossip-%d": {
 				Cache:   scale(1 * opt.MiB),
-				Fdlimit: fdlimit*1/2096 + 1,
+				Fdlimit: fdlimit*1/3072 + 1,
 			},
 			"": {
 				Cache:   16 * opt.MiB,
