@@ -45,36 +45,28 @@ func DefaultDBsConfig(scale func(uint64) uint64, fdlimit uint64) DBsConfig {
 func DefaultRuntimeDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheConfig {
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
-			"main": {
-				Cache:   scale(107 * opt.MiB),
-				Fdlimit: fdlimit*107/500 + 1,
-			},
 			"evm-data": {
-				Cache:   scale(257 * opt.MiB),
-				Fdlimit: fdlimit*257/500 + 1,
+				Cache:   scale(291 * opt.MiB),
+				Fdlimit: fdlimit*291/700 + 1,
 			},
-			"evm-logs-topics": {
-				Cache:   scale(43 * opt.MiB),
-				Fdlimit: fdlimit*43/500 + 1,
+			"evm-logs": {
+				Cache:   scale(136 * opt.MiB),
+				Fdlimit: fdlimit*136/700 + 1,
 			},
-			"evm-logs-recs": {
-				Cache:   scale(30 * opt.MiB),
-				Fdlimit: fdlimit*30/500 + 1,
+			"main": {
+				Cache:   scale(111 * opt.MiB),
+				Fdlimit: fdlimit*111/700 + 1,
 			},
 			"events": {
-				Cache:   scale(35 * opt.MiB),
-				Fdlimit: fdlimit*35/500 + 1,
+				Cache:   scale(87 * opt.MiB),
+				Fdlimit: fdlimit*87/700 + 1,
 			},
-			"lachesis-%d": {
-				Cache:   scale(8 * opt.MiB),
-				Fdlimit: fdlimit*8/500 + 1,
-			},
-			"gossip-%d": {
-				Cache:   scale(20 * opt.MiB),
-				Fdlimit: fdlimit*20/500 + 1,
+			"epoch-%d": {
+				Cache:   scale(75 * opt.MiB),
+				Fdlimit: fdlimit*75/700 + 1,
 			},
 			"": {
-				Cache:   32 * opt.MiB,
+				Cache:   64 * opt.MiB,
 				Fdlimit: fdlimit/100 + 1,
 			},
 		},
@@ -85,20 +77,16 @@ func DefaultGenesisDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBs
 	return DBsCacheConfig{
 		Table: map[string]DBCacheConfig{
 			"main": {
-				Cache:   scale(768 * opt.MiB),
-				Fdlimit: fdlimit*768/3072 + 1,
+				Cache:   scale(1024 * opt.MiB),
+				Fdlimit: fdlimit*1024/3072 + 1,
 			},
 			"evm-data": {
-				Cache:   scale(768 * opt.MiB),
-				Fdlimit: fdlimit*768/3072 + 1,
+				Cache:   scale(1024 * opt.MiB),
+				Fdlimit: fdlimit*1024/3072 + 1,
 			},
-			"evm-logs-recs": {
-				Cache:   scale(768 * opt.MiB),
-				Fdlimit: fdlimit*768/3072 + 1,
-			},
-			"evm-logs-topics": {
-				Cache:   scale(768 * opt.MiB),
-				Fdlimit: fdlimit*768/3072 + 1,
+			"evm-logs": {
+				Cache:   scale(1024 * opt.MiB),
+				Fdlimit: fdlimit*1024/3072 + 1,
 			},
 			"events": {
 				Cache:   scale(1 * opt.MiB),

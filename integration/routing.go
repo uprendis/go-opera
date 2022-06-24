@@ -41,13 +41,19 @@ func DefaultRoutingConfig() RoutingConfig {
 				Type: "pebble",
 				Name: "evm-data",
 			},
-			"evm-logs/r": {
+			"evm-logs": {
 				Type: "pebble",
-				Name: "evm-logs-recs",
+				Name: "evm-logs",
 			},
-			"evm-logs/t": {
-				Type: "pebble",
-				Name: "evm-logs-topics",
+			"gossip-%d": {
+				Type:  "pebble",
+				Name:  "epoch-%d",
+				Table: "G",
+			},
+			"lachesis-%d": {
+				Type:  "pebble",
+				Name:  "epoch-%d",
+				Table: "L",
 			},
 		},
 	}
