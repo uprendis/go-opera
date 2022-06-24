@@ -30,7 +30,7 @@ func dbMigrate(ctx *cli.Context) error {
 	defer os.RemoveAll(tmpPath)
 
 	// get supported DB producers
-	dbTypes := getDBProducersFor(cfg, path.Join(cfg.Node.DataDir, "chaindata"))
+	dbTypes := getDBProducersFor(path.Join(cfg.Node.DataDir, "chaindata"))
 
 	byReq, err := readRoutes(cfg, dbTypes)
 	if err != nil {
@@ -101,7 +101,7 @@ func dbMigrate(ctx *cli.Context) error {
 		byComponents = append(byComponents, component)
 	}
 
-	tmpDbTypes := getDBProducersFor(cfg, path.Join(cfg.Node.DataDir, "tmp"))
+	tmpDbTypes := getDBProducersFor(path.Join(cfg.Node.DataDir, "tmp"))
 	for _, component := range byComponents {
 		err := migrateComponent(cfg.Node.DataDir, dbTypes, tmpDbTypes, component)
 		if err != nil {
@@ -121,7 +121,7 @@ func dbMigrate(ctx *cli.Context) error {
 	return nil
 }
 
-func getDBProducersFor(cfg *config, chaindataDir string) map[multidb.TypeName]kvdb.FullDBProducer {
+func getDBProducersFor(chaindataDir string) map[multidb.TypeName]kvdb.FullDBProducer {
 	dbTypes, err := integration.SupportedDBs(chaindataDir, integration.DBsCacheConfig{
 		Table: map[string]integration.DBCacheConfig{
 			"": {
