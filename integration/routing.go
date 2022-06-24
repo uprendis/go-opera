@@ -23,33 +23,31 @@ func DefaultRoutingConfig() RoutingConfig {
 			"lachesis": {
 				Type:  "pebble",
 				Name:  "main",
-				Table: "L",
+				Table: ">",
 			},
 			"gossip": {
-				Type:  "pebble",
-				Name:  "main",
-				Table: "G",
+				Type: "pebble",
+				Name: "main",
 			},
 			"evm": {
-				Type:  "pebble",
-				Name:  "main",
-				Table: "E",
+				Type: "pebble",
+				Name: "main",
 			},
 			"gossip/e": {
-				Type:  "pebble",
-				Name:  "events",
+				Type: "pebble",
+				Name: "events",
 			},
 			"evm/M": {
-				Type:  "pebble",
-				Name:  "evm-data",
+				Type: "pebble",
+				Name: "evm-data",
 			},
 			"evm-logs/r": {
-				Type:  "pebble",
-				Name:  "evm-logs-recs",
+				Type: "pebble",
+				Name: "evm-logs-recs",
 			},
 			"evm-logs/t": {
-				Type:  "pebble",
-				Name:  "evm-logs-topics",
+				Type: "pebble",
+				Name: "evm-logs-topics",
 			},
 		},
 	}
@@ -68,9 +66,6 @@ func MakeFlushableMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableD
 			prevCloseDBs()
 			_ = flushablePool.Close()
 		}
-		for _, n := range existingDBs {
-			println(typ, "existingDBs", n)
-		}
 		flushID, err = flushablePool.Initialize(existingDBs, flushID)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to open existing databases: %v", err)
@@ -78,7 +73,6 @@ func MakeFlushableMultiProducer(rawProducers map[multidb.TypeName]kvdb.IterableD
 		flushables[typ] = cachedproducer.WrapAll(flushablePool)
 	}
 
-	println("__________1.0_")
 	p, err := makeMultiProducer(flushables, cfg)
 	return p, closeDBs, err
 }

@@ -4,8 +4,6 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"os"
-	"path"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -140,13 +138,11 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		}
 	}
 
-	println("__________1_")
 	// open flushable DBs
 	dbs, closeDBs, err := MakeFlushableMultiProducer(runtimeProducers, cfg.DBs.Routing)
 	if err != nil {
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
-	println("__________1.1_")
 	var wdbs kvdb.FlushableDBProducer
 	// final DB wrappers
 	if metrics.Enabled {
@@ -155,7 +151,6 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		wdbs = dbs
 	}
 	wdbs = WrapDatabaseWithSummary(wdbs)
-	println("__________2_")
 	gdb, cdb := getStores(wdbs, cfg)
 	defer func() {
 		if err != nil {
@@ -165,7 +160,6 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		}
 	}()
 
-	println("__________3_")
 	// compare genesis with the input
 	genesisID := gdb.GetGenesisID()
 	if genesisID == nil {
@@ -185,24 +179,20 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
 	}
 
-	err = gdb.Commit()
-	if err != nil {
-		err = fmt.Errorf("failed to commit DBs: %v", err)
-		return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+	if emptyStart {
+		err = gdb.Commit()
+		if err != nil {
+			err = fmt.Errorf("failed to commit DBs: %v", err)
+			return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+		}
 	}
-	println("__________4_")
 
 	return engine, vecClock, gdb, cdb, blockProc, closeDBs, nil
 }
 
 // MakeEngine makes consensus engine from config.
 func MakeEngine(chaindataDir string, g *genesis.Genesis, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func()) {
-	if err := os.MkdirAll(path.Join(chaindataDir, "leveldb"), 0700); err != nil {
-		utils.Fatalf("Failed to create chaindata/leveldb directory: %v", err)
-	}
-	if err := os.MkdirAll(path.Join(chaindataDir, "pebble"), 0700); err != nil {
-		utils.Fatalf("Failed to create chaindata/pebble directory: %v", err)
-	}
+	MakeDBDirs(chaindataDir)
 	// use increased DB cache for genesis processing
 	genesisProducers, err := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
 	if err != nil {

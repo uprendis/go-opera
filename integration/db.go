@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/utils/fmtfilter"
+	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
@@ -239,4 +241,13 @@ func (p *DummyFlushableProducer) NotFlushedSizeEst() int {
 
 func (p *DummyFlushableProducer) Flush(_ []byte) error {
 	return nil
+}
+
+func MakeDBDirs(chaindataDir string) {
+	if err := os.MkdirAll(path.Join(chaindataDir, "leveldb"), 0700); err != nil {
+		utils.Fatalf("Failed to create chaindata/leveldb directory: %v", err)
+	}
+	if err := os.MkdirAll(path.Join(chaindataDir, "pebble"), 0700); err != nil {
+		utils.Fatalf("Failed to create chaindata/pebble directory: %v", err)
+	}
 }

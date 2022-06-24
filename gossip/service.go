@@ -197,7 +197,6 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 	svc.blockProcTasks = workers.New(new(sync.WaitGroup), svc.blockProcTasksDone, 1)
 
 	// load epoch DB
-	println("load epoch db", svc.store.GetEpoch())
 	svc.store.loadEpochStore(svc.store.GetEpoch())
 	es := svc.store.getEpochStore(svc.store.GetEpoch())
 	svc.dagIndexer.Reset(svc.store.GetValidators(), es.table.DagIndex, func(id hash.Event) dag.Event {
