@@ -1,12 +1,19 @@
 package evmstore
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
+	"runtime"
 	"testing"
 
+	"github.com/Fantom-foundation/lachesis-base/common/bigendian"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/Fantom-foundation/go-opera/logger"
 )
@@ -20,7 +27,43 @@ func equalStorageReceipts(t *testing.T, expect, got []*types.ReceiptForStorage) 
 	}
 }
 
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
 func TestStoreGetCachedReceipts(t *testing.T) {
+	os.RemoveAll("/tmp/123")
+	os.Mkdir("/tmp/123", 0700)
+	db, _ := pebble.New("/tmp/123", opt.MiB * 650, 1000, nil, nil)
+
+	buf := make([]byte, 32)
+
+	for i := 0; i < 1000000000; i++ {
+		rand.Read(buf)
+		db.Put(bigendian.Uint64ToBytes(uint64(i)), buf)
+		db.Get(bigendian.Uint64ToBytes(uint64(rand.Intn(i+1))))
+		it := db.NewIterator(nil, bigendian.Uint64ToBytes(uint64(rand.Intn(i+1))))
+		it.Next()
+		it.Release()
+		if i % 100000 == 0 {
+			PrintMemUsage()
+		}
+	}
+
+	db.Close()
+	os.RemoveAll("\"/tmp/123\"")
+	return
+
 	logger.SetTestMode(t)
 
 	block, expect := fakeReceipts()

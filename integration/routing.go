@@ -33,17 +33,10 @@ func DefaultRoutingConfig() RoutingConfig {
 				Type: "pebble",
 				Name: "main",
 			},
-			"gossip/e": {
-				Type: "pebble",
-				Name: "events",
-			},
-			"evm/M": {
-				Type: "pebble",
-				Name: "evm-data",
-			},
 			"evm-logs": {
-				Type: "pebble",
-				Name: "evm-logs",
+				Type:  "pebble",
+				Name:  "main",
+				Table: "<",
 			},
 			"gossip-%d": {
 				Type:  "pebble",
