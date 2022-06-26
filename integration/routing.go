@@ -39,12 +39,12 @@ func DefaultRoutingConfig() RoutingConfig {
 				Table: "<",
 			},
 			"gossip-%d": {
-				Type:  "pebble",
+				Type:  "leveldb",
 				Name:  "epoch-%d",
 				Table: "G",
 			},
 			"lachesis-%d": {
-				Type:  "pebble",
+				Type:  "leveldb",
 				Name:  "epoch-%d",
 				Table: "L",
 			},
