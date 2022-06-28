@@ -117,6 +117,7 @@ func (s *Store) ForEachEvent(start idx.Epoch, onEvent func(event *inter.EventPay
 }
 
 func (s *Store) ForEachEventRLP(start []byte, onEvent func(key hash.Event, event rlp.RawValue) bool) {
+	println("ForEachEventRLP")
 	it := s.table.Events.NewIterator(nil, start)
 	defer it.Release()
 	for it.Next() {

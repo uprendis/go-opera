@@ -78,6 +78,7 @@ type LlrEpochPackRLP struct {
 }
 
 func (s *Store) IterateEpochPacksRLP(start idx.Epoch, f func(epoch idx.Epoch, ep rlp.RawValue) bool) {
+	println("IterateEpochPacksRLP")
 	it := s.table.BlockEpochStateHistory.NewIterator(nil, start.Bytes())
 	defer it.Release()
 	for it.Next() {

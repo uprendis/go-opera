@@ -26,6 +26,7 @@ func (s *Store) HasBlockVotes(epoch idx.Epoch, lastBlock idx.Block, id hash.Even
 }
 
 func (s *Store) IterateOverlappingBlockVotesRLP(start []byte, f func(key []byte, bvs rlp.RawValue) bool) {
+	println("IterateOverlappingBlockVotesRLP")
 	it := s.table.LlrBlockVotes.NewIterator(nil, start)
 	defer it.Release()
 	for it.Next() {
@@ -164,6 +165,7 @@ type LlrIdxFullBlockRecordRLP struct {
 var emptyReceiptsRLP, _ = rlp.EncodeToBytes([]*types.ReceiptForStorage{})
 
 func (s *Store) IterateFullBlockRecordsRLP(start idx.Block, f func(b idx.Block, br rlp.RawValue) bool) {
+	println("IterateFullBlockRecordsRLP")
 	it := s.table.Blocks.NewIterator(nil, start.Bytes())
 	defer it.Release()
 	for it.Next() {
