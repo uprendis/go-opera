@@ -12,24 +12,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 )
 
-func (s *Store) WrapTablesAsBatched() (unwrap func()) {
-	origTables := s.table
-
-	batchedBlocks := batched.Wrap(s.table.Blocks)
-	s.table.Blocks = batchedBlocks
-
-	batchedBlockHashes := batched.Wrap(s.table.BlockHashes)
-	s.table.BlockHashes = batchedBlockHashes
-
-	unwrapEVM := s.evm.WrapTablesAsBatched()
-	return func() {
-		unwrapEVM()
-		_ = batchedBlocks.Flush()
-		_ = batchedBlockHashes.Flush()
-		s.table = origTables
-	}
-}
-
 // ApplyGenesis writes initial state.
 func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err error) {
 	// use batching wrapper for hot tables
@@ -69,10 +51,6 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 		s.WriteFullBlockRecord(br)
 		return true
 	})
-	err = s.evm.EvmLogs.Flush()
-	if err != nil {
-		return genesisHash, err
-	}
 
 	// write EVM items
 	err = s.evm.ApplyGenesis(g)
@@ -93,4 +71,22 @@ func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err erro
 	s.SetGenesisBlockIndex(topEr.BlockState.LastBlock.Idx)
 
 	return genesisHash, err
+}
+
+func (s *Store) WrapTablesAsBatched() (unwrap func()) {
+	origTables := s.table
+
+	batchedBlocks := batched.Wrap(s.table.Blocks)
+	s.table.Blocks = batchedBlocks
+
+	batchedBlockHashes := batched.Wrap(s.table.BlockHashes)
+	s.table.BlockHashes = batchedBlockHashes
+
+	unwrapEVM := s.evm.WrapTablesAsBatched()
+	return func() {
+		unwrapEVM()
+		_ = batchedBlocks.Flush()
+		_ = batchedBlockHashes.Flush()
+		s.table = origTables
+	}
 }

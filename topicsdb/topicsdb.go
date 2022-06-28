@@ -7,6 +7,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -22,9 +23,9 @@ var (
 type Index struct {
 	table struct {
 		// topic+topicN+(blockN+TxHash+logIndex) -> topic_count (where topicN=0 is for address)
-		Topic *batched.Store `table:"t"`
+		Topic kvdb.Store `table:"t"`
 		// (blockN+TxHash+logIndex) -> ordered topic_count topics, blockHash, address, data
-		Logrec *batched.Store `table:"r"`
+		Logrec kvdb.Store `table:"r"`
 	}
 }
 
@@ -32,18 +33,25 @@ type Index struct {
 func New(dbs kvdb.DBProducer) *Index {
 	tt := &Index{}
 
-	db, err := dbs.OpenDB("evm-logs/t")
+	err := table.OpenTables(&tt.table, dbs, "evm-logs")
 	if err != nil {
 		panic(err)
 	}
-	tt.table.Topic = batched.Wrap(db)
-	db, err = dbs.OpenDB("evm-logs/r")
-	if err != nil {
-		panic(err)
-	}
-	tt.table.Logrec = batched.Wrap(db)
 
 	return tt
+}
+
+func (tt *Index) WrapTablesAsBatched() (unwrap func()) {
+	origTables := tt.table
+	batchedTopic := batched.Wrap(tt.table.Topic)
+	tt.table.Topic = batchedTopic
+	batchedLogrec := batched.Wrap(tt.table.Logrec)
+	tt.table.Logrec = batchedLogrec
+	return func() {
+		_ = batchedTopic.Flush()
+		_ = batchedLogrec.Flush()
+		tt.table = origTables
+	}
 }
 
 // FindInBlocks returns all log records of block range by pattern. 1st pattern element is an address.
@@ -197,14 +205,6 @@ func (tt *Index) Push(recs ...*types.Log) error {
 	}
 
 	return nil
-}
-
-func (tt *Index) Flush() error {
-	err := tt.table.Topic.Flush()
-	if err != nil {
-		return err
-	}
-	return tt.table.Logrec.Flush()
 }
 
 func (tt *Index) Close() {

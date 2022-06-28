@@ -43,18 +43,15 @@ func (s *Store) WrapTablesAsBatched() (unwrap func()) {
 	batchedTxPositions := batched.Wrap(s.table.TxPositions)
 	s.table.TxPositions = batchedTxPositions
 
-	//batchedLogs := batched.Wrap(s.table.Logs)
-	//s.table.Logs = batchedLogs
-	//s.EvmLogs = topicsdb.New(s.table.Logs)
+	unwrapLogs := s.EvmLogs.WrapTablesAsBatched()
 
 	batchedReceipts := batched.Wrap(s.table.Receipts)
 	s.table.Receipts = batchedReceipts
 	return func() {
 		_ = batchedTxs.Flush()
 		_ = batchedTxPositions.Flush()
-		//_ = batchedLogs.Flush()
 		_ = batchedReceipts.Flush()
+		unwrapLogs()
 		s.table = origTables
-		//s.EvmLogs = topicsdb.New(s.table.Logs)
 	}
 }
