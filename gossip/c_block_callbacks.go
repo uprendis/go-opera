@@ -385,9 +385,6 @@ func consensusCallbackBeginBlockFn(
 						store.SetHistoryBlockEpochState(es.Epoch, bs, es)
 						store.SetEpochBlock(blockCtx.Idx+1, es.Epoch)
 					}
-					if err != nil {
-						log.Crit("Failed to flush EVM logs index", "err", err)
-					}
 					store.SetBlock(blockCtx.Idx, block)
 					store.SetBlockIndex(block.Atropos, blockCtx.Idx)
 					store.SetBlockEpochState(bs, es)

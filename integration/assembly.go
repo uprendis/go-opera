@@ -121,9 +121,20 @@ func applyGenesis(dbs kvdb.FlushableDBProducer, g genesis.Genesis, cfg Configs) 
 	return nil
 }
 
+func migrate(dbs kvdb.FlushableDBProducer, cfg Configs) error {
+	gdb, cdb := getStores(dbs, cfg)
+	defer gdb.Close()
+	defer cdb.Close()
+	err := gdb.Commit()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.IterableDBProducer, g *genesis.Genesis, emptyStart bool, cfg Configs) (*abft.Lachesis, *vecmt.Index, *gossip.Store, *abft.Store, gossip.BlockProc, func(), error) {
-	if emptyStart {
-		if g == nil {
+	{
+		if emptyStart && g == nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("missing --genesis flag for an empty datadir")
 		}
 		// open raw DBs for performance reasons
@@ -131,10 +142,16 @@ func makeEngine(genesisProducers, runtimeProducers map[multidb.TypeName]kvdb.Ite
 		if err != nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to make DB multi-producer: %v", err)
 		}
-
-		err = applyGenesis(dbs, *g, cfg)
-		if err != nil {
-			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to apply genesis state: %v", err)
+		if emptyStart {
+			err = applyGenesis(dbs, *g, cfg)
+			if err != nil {
+				return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to apply genesis state: %v", err)
+			}
+		} else {
+			err = migrate(dbs, cfg)
+			if err != nil {
+				return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to migrate state: %v", err)
+			}
 		}
 	}
 
