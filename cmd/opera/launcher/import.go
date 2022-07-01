@@ -30,7 +30,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/utils/ioread"
 )
 
-var globalStart time.Time
+var prev time.Time
 
 func importEvm(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
@@ -107,12 +107,13 @@ func importEvents(ctx *cli.Context) error {
 }
 
 func importEventsToNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store, args ...string) error {
-	globalStart = time.Now()
+	prev = time.Now()
 	node, svc, nodeClose := makeNode(ctx, cfg, genesisStore)
 	defer nodeClose()
 	startNode(ctx, node)
-	println("==+==", "started", time.Since(globalStart))
+	println("==+==", "started", time.Since(prev)/time.Second)
 	PrintMemUsage()
+	prev = time.Now()
 
 	for _, fn := range args {
 		log.Info("Importing events from file", "file", fn)
@@ -120,8 +121,9 @@ func importEventsToNode(ctx *cli.Context, cfg *config, genesisStore *genesisstor
 			log.Error("Import error", "file", fn, "err", err)
 			return err
 		}
-		println("==+==", "imported", time.Since(globalStart))
+		println("==+==", "imported", time.Since(prev)/time.Second)
 		PrintMemUsage()
+		prev = time.Now()
 	}
 	return nil
 }
@@ -173,8 +175,9 @@ func importEventsFile(srv *gossip.Service, fn string) error {
 			continue
 		}
 	}
-	println("==+==", "generated", time.Since(globalStart))
+	println("==+==", "generated", time.Since(prev)/time.Second)
 	PrintMemUsage()
+	prev = time.Now()
 
 	// Open the file handle and potentially unwrap the gzip stream
 	fh, err := os.Open(fn)
