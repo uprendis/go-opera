@@ -21,7 +21,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
-	"github.com/Fantom-foundation/go-opera/utils/dbutil/asyncflushproducer"
 )
 
 type DBsConfig struct {
@@ -136,9 +135,10 @@ func SupportedDBs(chaindataDir string, cfg DBsCacheConfig) (map[multidb.TypeName
 			"leveldb-fsh": flushable.NewSyncedPool(leveldbFsh, FlushIDKey),
 			"leveldb-flg": flaggedproducer.Wrap(leveldbFlg, FlushIDKey),
 			"leveldb-drc": &DummyScopedProducer{leveldbDrc},
-			"pebble-fsh":  asyncflushproducer.Wrap(flushable.NewSyncedPool(pebbleFsh, FlushIDKey), 200000),
-			"pebble-flg":  flaggedproducer.Wrap(pebbleFlg, FlushIDKey),
-			"pebble-drc":  &DummyScopedProducer{pebbleDrc},
+			//"pebble-fsh":  asyncflushproducer.Wrap(flushable.NewSyncedPool(pebbleFsh, FlushIDKey), 200000),
+			"pebble-fsh": flushable.NewSyncedPool(pebbleFsh, FlushIDKey),
+			"pebble-flg": flaggedproducer.Wrap(pebbleFlg, FlushIDKey),
+			"pebble-drc": &DummyScopedProducer{pebbleDrc},
 		}
 }
 
