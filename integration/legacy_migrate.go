@@ -31,7 +31,10 @@ func transform(m transformTask) error {
 	openDst := func() *batched.Store {
 		return batched.Wrap(m.openDst())
 	}
-	src := m.openSrc()
+	openSrc := func() *batched.Store {
+		return batched.Wrap(m.openSrc())
+	}
+	src := openSrc()
 	defer func() {
 		_ = src.Close()
 		if m.dropSrc {
@@ -51,9 +54,8 @@ func transform(m transformTask) error {
 		}
 	}
 
-	const batchKeys = 2000000
+	const batchKeys = 5000000
 	keys := make([][]byte, 0, batchKeys)
-	values := make([][]byte, 0, batchKeys)
 	it := src.NewIterator(nil, start)
 	defer func() {
 		// wrap with func because DBs may be reopened below
@@ -67,14 +69,11 @@ func transform(m transformTask) error {
 			if !next {
 				break
 			}
-			keys = append(keys, common.CopyBytes(it.Key()))
-			values = append(values, common.CopyBytes(it.Value()))
-		}
-		for i := 0; i < len(keys); i++ {
-			err := dst.Put(keys[i], values[i])
+			err := dst.Put(it.Key(), it.Value())
 			if err != nil {
 				utils.Fatalf("Failed to put: %v", err)
 			}
+			keys = append(keys, common.CopyBytes(it.Key()))
 		}
 		err := dst.Flush()
 		if err != nil {
@@ -83,29 +82,25 @@ func transform(m transformTask) error {
 		freeSpace, err := getFreeDiskSpace(m.dir)
 		if err != nil {
 			log.Error("Failed to retrieve free disk space", "err", err)
-		} else if freeSpace < 10*opt.GiB {
+		} else if freeSpace < 20*opt.GiB {
 			return errors.New("not enough disk space")
-		} else if len(keys) > 0 && freeSpace < 100*opt.GiB {
+		} else if len(keys) > 0 && freeSpace < 600*opt.GiB {
 			log.Warn("Running out of disk space. Trimming source DB records", "space_GB", freeSpace/opt.GiB)
 			// release iterator so that DB could release data
 			it.Release()
-			// ensure that dst has flushed data
-			_ = dst.Close()
-			dst = openDst()
-			// erase data from dst
+			// erase data from src
 			for _, k := range keys {
 				_ = src.Delete(k)
 			}
 			_ = src.Compact(keys[0], keys[len(keys)-1])
 			// reopen source DB too if it doesn't release data
-			if freeSpace < 80*opt.GiB {
+			if freeSpace < 540*opt.GiB {
 				_ = src.Close()
-				src = m.openSrc()
+				src = openSrc()
 			}
 			it = src.NewIterator(nil, keys[len(keys)-1])
 		}
 		keys = keys[:0]
-		values = values[:0]
 	}
 	return nil
 }
