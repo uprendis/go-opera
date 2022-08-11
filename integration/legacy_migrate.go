@@ -19,6 +19,21 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
+func lastKey(db kvdb.Store) []byte {
+	var start []byte
+	for {
+		for b := 0xff; b >= 0; b-- {
+			if !isEmptyDB(table.New(db, append(start, byte(b)))) {
+				start = append(start, byte(b))
+				break
+			}
+			if b == 0 {
+				return start
+			}
+		}
+	}
+}
+
 type transformTask struct {
 	openSrc func() kvdb.Store
 	openDst func() kvdb.Store
@@ -45,18 +60,11 @@ func transform(m transformTask) error {
 		return nil
 	}
 	dst := openDst()
-	// start from previously written data, if any
-	var start []byte
-	for b := 0xff; b > 0; b-- {
-		if !isEmptyDB(table.New(dst, []byte{byte(b)})) {
-			start = []byte{byte(b)}
-			break
-		}
-	}
 
 	const batchKeys = 5000000
 	keys := make([][]byte, 0, batchKeys)
-	it := src.NewIterator(nil, start)
+	// start from previously written data, if any
+	it := src.NewIterator(nil, lastKey(dst))
 	defer func() {
 		// wrap with func because DBs may be reopened below
 		it.Release()
