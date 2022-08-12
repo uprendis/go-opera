@@ -64,6 +64,7 @@ func (f *Producer) Flush(id []byte) error {
 	}
 
 	// trigger flushing data to disk if throughput is below a threshold
+	println(uint64(f.stats.Rate1()), f.threshold)
 	if uint64(f.stats.Rate1()) <= f.threshold {
 		go func() {
 			f.mu.Lock()
