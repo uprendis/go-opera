@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -184,6 +185,32 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		if err != nil {
 			return nil, nil, nil, nil, gossip.BlockProc{}, nil, fmt.Errorf("failed to migrate state: %v", err)
 		}
+	}
+	// Compaction
+	{
+		start := time.Now()
+		runtimeProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
+		for typ, p := range runtimeProducers {
+			for _, name := range p.Names() {
+				humanName := path.Join(string(typ), name)
+				db, err := p.OpenDB(name)
+				if err != nil {
+					log.Error("Cannot open db or db does not exists", "db", humanName)
+					return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+				}
+
+				log.Info("Triggering compaction", "db", humanName)
+				for b := byte(0); b < 255; b++ {
+					log.Trace("Compacting chain database", "db", humanName, "range", fmt.Sprintf("0x%0.2X-0x%0.2X", b, b+1))
+					if err := db.Compact([]byte{b}, []byte{b + 1}); err != nil {
+						log.Error("Database compaction failed", "err", err)
+						return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+					}
+				}
+				db.Close()
+			}
+		}
+		println("==+== compaction", time.Since(start) / time.Second)
 	}
 	// Live setup
 
