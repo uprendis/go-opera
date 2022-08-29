@@ -187,7 +187,7 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		}
 	}
 	// Compaction
-	{
+	if false {
 		start := time.Now()
 		runtimeProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.RuntimeCache)
 		for typ, p := range runtimeProducers {

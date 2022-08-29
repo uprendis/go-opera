@@ -15,8 +15,8 @@ import (
 // ApplyGenesis writes initial state.
 func (s *Store) ApplyGenesis(g genesis.Genesis) (genesisHash hash.Hash, err error) {
 	// use batching wrapper for hot tables
-	unwrap := s.WrapTablesAsBatched()
-	defer unwrap()
+	//unwrap := s.WrapTablesAsBatched()
+	//defer unwrap()
 
 	// write epochs
 	var topEr *ier.LlrIdxFullEpochRecord
