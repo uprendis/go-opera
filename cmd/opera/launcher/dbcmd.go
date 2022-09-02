@@ -84,10 +84,11 @@ func makeUncheckedCachedDBsProducers(chaindataDir string) map[multidb.TypeName]k
 	dbTypes, _ := integration.SupportedDBs(chaindataDir, integration.DBsCacheConfig{
 		Table: map[string]integration.DBCacheConfig{
 			"": {
-				Cache:   1024 * opt.MiB,
+				Cache:   768 * opt.MiB,
 				Fdlimit: uint64(utils.MakeDatabaseHandles() / 2),
 			},
 		},
+		SharedCache: 256 * opt.MiB,
 	})
 	wrappedDbTypes := make(map[multidb.TypeName]kvdb.FullDBProducer)
 	for typ, producer := range dbTypes {

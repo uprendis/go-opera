@@ -204,10 +204,11 @@ func migrateLegacyDBs(chaindataDir string, dbs kvdb.FlushableDBProducer, mode st
 		cacheFn, err := dbCacheFdlimit(DBsCacheConfig{
 			Table: map[string]DBCacheConfig{
 				"": {
-					Cache:   1024 * opt.MiB,
+					Cache:   768 * opt.MiB,
 					Fdlimit: uint64(utils.MakeDatabaseHandles() / 2),
 				},
 			},
+			SharedCache: 256 * opt.MiB,
 		})
 		if err != nil {
 			return err
@@ -218,7 +219,9 @@ func migrateLegacyDBs(chaindataDir string, dbs kvdb.FlushableDBProducer, mode st
 			oldDBs = leveldb.NewProducer(chaindataDir, cacheFn)
 			oldDBsType = "ldb"
 		} else {
-			oldDBs = pebble.NewProducer(chaindataDir, cacheFn)
+			sharedConfig := pebble.NewCache(512 * opt.MiB)
+			defer sharedConfig.Unref()
+			oldDBs = pebble.NewProducer(chaindataDir, sharedConfig, cacheFn)
 			oldDBsType = "pbl"
 		}
 		openOldDB := func(name string) kvdb.Store {

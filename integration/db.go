@@ -36,8 +36,11 @@ type DBCacheConfig struct {
 }
 
 type DBsCacheConfig struct {
-	Table map[string]DBCacheConfig
+	Table       map[string]DBCacheConfig
+	SharedCache uint64
 }
+
+var unrefPrevCache = func() {}
 
 func SupportedDBs(chaindataDir string, cfg DBsCacheConfig) (map[multidb.TypeName]kvdb.IterableDBProducer, map[multidb.TypeName]kvdb.FullDBProducer) {
 	if chaindataDir == "inmemory" || chaindataDir == "" {
@@ -47,13 +50,21 @@ func SupportedDBs(chaindataDir string, cfg DBsCacheConfig) (map[multidb.TypeName
 	if err != nil {
 		utils.Fatalf("Failed to create DB cacher: %v", err)
 	}
+	cacherWithSharedCache := func(name string) (int, int) {
+		c, fd := cacher(name)
+		return c + int(cfg.SharedCache), fd
+	}
 
-	leveldbFsh := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-fsh"), cacher)
-	leveldbFlg := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-flg"), cacher)
-	leveldbDrc := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-drc"), cacher)
-	pebbleFsh := pebble.NewProducer(path.Join(chaindataDir, "pebble-fsh"), cacher)
-	pebbleFlg := pebble.NewProducer(path.Join(chaindataDir, "pebble-flg"), cacher)
-	pebbleDrc := pebble.NewProducer(path.Join(chaindataDir, "pebble-drc"), cacher)
+	unrefPrevCache()
+	sharedConfig := pebble.NewCache(int(cfg.SharedCache))
+	unrefPrevCache = sharedConfig.Unref
+
+	leveldbFsh := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-fsh"), cacherWithSharedCache)
+	leveldbFlg := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-flg"), cacherWithSharedCache)
+	leveldbDrc := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-drc"), cacherWithSharedCache)
+	pebbleFsh := pebble.NewProducer(path.Join(chaindataDir, "pebble-fsh"), sharedConfig, cacher)
+	pebbleFlg := pebble.NewProducer(path.Join(chaindataDir, "pebble-flg"), sharedConfig, cacher)
+	pebbleDrc := pebble.NewProducer(path.Join(chaindataDir, "pebble-drc"), sharedConfig, cacher)
 
 	return map[multidb.TypeName]kvdb.IterableDBProducer{
 			"leveldb-fsh": leveldbFsh,
