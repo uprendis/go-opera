@@ -219,7 +219,7 @@ func migrateLegacyDBs(chaindataDir string, dbs kvdb.FlushableDBProducer, mode st
 			oldDBs = leveldb.NewProducer(chaindataDir, cacheFn)
 			oldDBsType = "ldb"
 		} else {
-			sharedConfig := pebble.NewCache(512 * opt.MiB)()
+			sharedConfig := pebble.NewCache(512 * opt.MiB)
 			defer sharedConfig.Unref()
 			oldDBs = pebble.NewProducer(chaindataDir, sharedConfig, cacheFn)
 			oldDBsType = "pbl"
