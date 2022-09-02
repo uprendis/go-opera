@@ -56,7 +56,7 @@ func SupportedDBs(chaindataDir string, cfg DBsCacheConfig) (map[multidb.TypeName
 	}
 
 	unrefPrevCache()
-	sharedConfig := pebble.NewCache(int(cfg.SharedCache))
+	sharedConfig := pebble.NewCache(int(cfg.SharedCache))()
 	unrefPrevCache = sharedConfig.Unref
 
 	leveldbFsh := leveldb.NewProducer(path.Join(chaindataDir, "leveldb-fsh"), cacherWithSharedCache)
