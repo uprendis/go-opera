@@ -175,6 +175,8 @@ func (s *Service) EvmSnapshotGeneration() bool {
 	return gen
 }
 
+var eventsNum = 0
+
 // processEvent extends the engine.Process with gossip-specific actions on each event processing
 func (s *Service) processEvent(e *inter.EventPayload) error {
 	// s.engineMu is locked here
@@ -240,6 +242,9 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	} else if e.Lamport() > s.store.GetHighestLamport() {
 		s.store.SetHighestLamport(e.Lamport())
 	}
+
+	eventsNum++
+	println("events num", eventsNum)
 
 	for _, em := range s.emitters {
 		em.OnEventConnected(e)
