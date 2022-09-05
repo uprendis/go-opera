@@ -372,8 +372,19 @@ func (em *Emitter) createEvent(sortedTxs *types.TransactionsByPriceAndNonce) (*i
 	var metric ancestor.Metric
 	err := em.world.Build(mutEvent, func() {
 		// calculate event metric when it is indexed by the vector clock
-		metric = eventMetric(em.quorumIndexer.GetMetricOf(mutEvent.ID()), mutEvent.Seq())
-		metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
+		onlineVals := map[idx.ValidatorID]bool{}
+		for _, vid := range em.validators.IDs() {
+			if !em.offlineValidators[vid] {
+				onlineVals[vid] = true
+			}
+		}
+		if mutEvent.SelfParent() != nil {
+			em.quorumIndexer.SelfParentEvent = *mutEvent.SelfParent()
+			metric = eventMetric(em.quorumIndexer.GetMetricOfLogistic(mutEvent.Parents(), int(em.maxParents), onlineVals), mutEvent.Seq())
+			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
+		} else {
+			metric = 0.5 * piecefunc.DecimalUnit
+		}
 	})
 	if err != nil {
 		if err == ErrNotEnoughGasPower {

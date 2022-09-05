@@ -4,6 +4,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/abft/dagidx"
 	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/vecfc"
 
@@ -37,6 +38,10 @@ func (b *BranchSeq) MinSeq() idx.Event {
 // Size of the vector clock
 func (b AdapterSeq) Size() int {
 	return b.VSeq.Size()
+}
+
+func (b Adapter) GetEvent(h hash.Event) dag.Event {
+	return b.Index.GetEvent(h)
 }
 
 // Get i's position in the byte-encoded vector clock

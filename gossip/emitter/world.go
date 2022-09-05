@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/Fantom-foundation/lachesis-base/inter/pos"
@@ -33,6 +34,7 @@ type (
 		Broadcast(*inter.EventPayload)
 		Build(*inter.MutableEventPayload, func()) error
 		DagIndex() *vecmt.Index
+		Engine() *abft.Lachesis
 
 		IsBusy() bool
 		IsSynced() bool

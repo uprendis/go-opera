@@ -3,6 +3,7 @@ package gossip
 import (
 	"sync/atomic"
 
+	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -54,6 +55,10 @@ func (ew *emitterWorldProc) Build(e *inter.MutableEventPayload, onIndexed func()
 
 func (ew *emitterWorldProc) DagIndex() *vecmt.Index {
 	return ew.s.dagIndexer
+}
+
+func (ew *emitterWorldProc) Engine() *abft.Lachesis {
+	return ew.s.engine.(*abft.Lachesis)
 }
 
 func (ew *emitterWorldProc) IsBusy() bool {
