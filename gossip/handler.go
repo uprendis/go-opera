@@ -944,6 +944,52 @@ func (h *handler) handleEventHashes(p *peer, announces hash.Events) {
 	_ = h.dagFetcher.NotifyAnnounces(p.id, eventIDsToInterfaces(notTooHigh), time.Now(), requestEvents)
 }
 
+func delayCumDist() (cumDist []float64) {
+	// the purpose of this function is to caluclate a cumulative distribution of delays for use in creating random samples from the data distribution
+
+	// some delay data in milliseconds
+	delayData := [...]int{54, 110, 60, 124, 75, 47, 165, 152, 18, 18, 52, 83, 80, 92, 51, 11, 21, 32, 120, 9, 18, 129, 64, 53, 83, 118, 12, 79, 54, 21, 18, 62, 121, 7, 22, 147, 73, 170, 198, 145, 25, 138, 123, 68, 109, 73, 34, 122, 10, 121, 23, 129, 82, 85, 58, 129, 281, 275, 300, 174, 158, 169, 124, 186, 61, 51, 107, 85, 49, 131, 12, 52, 100, 17, 32, 70, 121, 6, 17, 190, 59, 16, 372, 233, 201, 169, 97, 91, 101, 80, 127, 26, 12, 10, 49, 49, 83, 19, 91, 61, 52, 129, 34, 125, 66, 116, 110, 82, 104, 82, 52, 29, 95, 72, 133, 65, 338, 285, 221, 282, 196, 234, 315, 183, 135, 69, 102, 187, 79, 79, 82, 20, 129, 122, 54, 9, 9, 52, 21, 91, 74, 14, 20, 18, 63, 47, 83, 124, 7, 131, 18, 132, 285, 186, 242, 190, 131, 127, 72, 243, 218, 223, 185, 140, 136, 87, 123, 265, 166, 112, 94, 82, 92, 226, 95, 78, 35, 54, 63, 223, 59, 30, 56, 87, 163, 195, 69, 173, 37, 25, 64, 52, 121, 36, 14, 29, 76, 170, 144, 131, 162, 133, 15, 17, 129, 50, 67, 176, 40, 23, 51, 79, 85, 128, 17, 18, 45, 62, 84, 134, 40, 130, 32, 55, 66, 93, 26, 132, 15, 19, 27, 56, 106, 35, 30, 54, 60, 83, 128, 125, 11, 8, 18, 83, 63, 49, 94, 94, 45, 17, 21, 49, 51, 79, 82, 97, 123, 127, 8, 14, 20, 54, 107, 41, 30, 52, 91, 122, 9, 13, 136, 54, 46, 72, 131, 51, 233, 167, 172, 63, 31, 59, 67, 88, 134, 15, 17, 21, 97, 129, 35, 54, 23, 50, 82, 83, 80, 130, 36, 22, 33, 71, 46, 39, 85, 101, 121, 82, 122, 50, 26, 27, 95, 24, 137, 9, 25, 130, 62, 193, 57, 55, 22, 98}
+
+	// find the maximum delay in the data
+	maxDelay := 0
+	for _, delay := range delayData {
+		if delay > maxDelay {
+			maxDelay = delay
+		}
+	}
+
+	// calculate the distribution of the delay data by dividing into bins
+	binVals := make([]float64, maxDelay+1)
+	for _, latency := range delayData {
+		binVals[latency]++
+	}
+
+	//now calculate the cumulative distribution of the delay data
+	cumDist = make([]float64, len(binVals))
+	npts := float64(len(delayData))
+	cumDist[0] = float64(binVals[0]) / npts
+	for i := 1; i < len(cumDist); i++ {
+		cumDist[i] = cumDist[i-1] + binVals[i]/npts
+	}
+	return cumDist
+}
+
+var delayDist = delayCumDist()
+var delayRNG = rand.New(rand.NewSource(0))
+
+func sampleDist(rng *rand.Rand, cumDist []float64) (sample int) {
+	// generates a random sample from the distribution used to calculate cumDist (using inverse transform sampling)
+	random := rng.Float64()
+	for sample = 1; cumDist[sample] <= random && sample < len(cumDist); sample++ {
+	}
+	if sample <= 0 {
+		sample = 1 // the distributions used here should not be negative or zero, an explicit check
+		fmt.Println("")
+		fmt.Println("WARNING: distribution sample was <=0, and reset to 1")
+	}
+	return sample
+}
+
 func (h *handler) handleEvents(p *peer, events dag.Events, ordered bool) {
 	// Mark the hashes as present at the remote node
 	for _, e := range events {
@@ -976,7 +1022,14 @@ func (h *handler) handleEvents(p *peer, events dag.Events, ordered bool) {
 	notifyAnnounces := func(ids hash.Events) {
 		_ = h.dagFetcher.NotifyAnnounces(peer.id, eventIDsToInterfaces(ids), now, requestEvents)
 	}
-	_ = h.dagProcessor.Enqueue(peer.id, notTooHigh, ordered, notifyAnnounces, nil)
+	go func() {
+		delay := time.Duration(sampleDist(delayRNG, delayDist)) * time.Millisecond
+		passed := time.Since(notTooHigh[0].(inter.EventI).CreationTime().Time())
+		if passed < delay {
+			time.Sleep(delay - passed)
+		}
+		_ = h.dagProcessor.Enqueue(peer.id, notTooHigh, ordered, notifyAnnounces, nil)
+	}()
 }
 
 // handleMsg is invoked whenever an inbound message is received from a remote
