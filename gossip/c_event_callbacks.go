@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 	"sync/atomic"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -16,6 +17,7 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
+	"github.com/Fantom-foundation/go-opera/opera"
 	"github.com/Fantom-foundation/go-opera/utils/concurrent"
 )
 
@@ -174,6 +176,24 @@ func (s *Service) EvmSnapshotGeneration() bool {
 	return gen
 }
 
+type ValStat struct {
+	n    int
+	ping time.Duration
+}
+
+var vall = map[idx.ValidatorID]ValStat{}
+var started time.Time
+
+func maxTotalGasPower(rules opera.Rules) *big.Int {
+	allocBn := new(big.Int).SetUint64(rules.Economy.LongGasPower.AllocPerSec)
+	periodBn := new(big.Int).SetUint64(uint64(rules.Economy.LongGasPower.MaxAllocPeriod))
+	maxTotalGasPowerBn := new(big.Int).Mul(allocBn, periodBn)
+	maxTotalGasPowerBn.Div(maxTotalGasPowerBn, new(big.Int).SetUint64(uint64(time.Second)))
+	return maxTotalGasPowerBn
+}
+
+var g = uint64(0)
+
 // processEvent extends the engine.Process with gossip-specific actions on each event processing
 func (s *Service) processEvent(e *inter.EventPayload) error {
 	// s.engineMu is locked here
@@ -207,6 +227,32 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 		if *e.PrevEpochHash() != es.Hash() {
 			s.store.DelEvent(e.ID())
 			return errWrongEpochHash
+		}
+	}
+
+	if started == (time.Time{}) {
+		if time.Since(e.CreationTime().Time()) < time.Millisecond*300 {
+			started = time.Now()
+		}
+		g += e.GasPowerUsed()
+	} else {
+		prev := vall[e.Creator()]
+		prev.n++
+		prev.ping += time.Since(e.CreationTime().Time())
+		vall[e.Creator()] = prev
+		if e.Lamport()%50 == 0 {
+			acc := uint64(0)
+			for _, id := range es.Validators.IDs() {
+				acc += uint64(es.Validators.Get(id))
+				ping := vall[id].ping
+				if vall[id].n != 0 {
+					ping /= time.Duration(vall[id].n)
+				}
+				println(id, (acc*1000)/uint64(es.Validators.TotalWeight()), (uint64(es.Validators.Get(id))*1000)/uint64(es.Validators.TotalWeight()), vall[id].n, ping.String())
+			}
+			println(time.Since(started).String())
+			b := &GPOBackend{s.store, s.txpool}
+			println(b.TotalGasPowerLeft(), maxTotalGasPower(es.Rules).String(), g)
 		}
 	}
 
