@@ -281,7 +281,7 @@ func newHandler(
 		},
 		PeerEpoch: func(peer string) idx.Epoch {
 			p := h.peers.Peer(peer)
-			if p == nil {
+			if p == nil || lowQualityPeer(p.Peer) {
 				return 0
 			}
 			return p.progress.Epoch
@@ -317,7 +317,7 @@ func newHandler(
 		},
 		PeerBlock: func(peer string) idx.Block {
 			p := h.peers.Peer(peer)
-			if p == nil {
+			if p == nil || lowQualityPeer(p.Peer) {
 				return 0
 			}
 			return p.progress.LastBlockIdx
@@ -358,7 +358,7 @@ func newHandler(
 		},
 		PeerBlock: func(peer string) idx.Block {
 			p := h.peers.Peer(peer)
-			if p == nil {
+			if p == nil || lowQualityPeer(p.Peer) {
 				return 0
 			}
 			return p.progress.LastBlockIdx
@@ -396,7 +396,7 @@ func newHandler(
 		},
 		PeerEpoch: func(peer string) idx.Epoch {
 			p := h.peers.Peer(peer)
-			if p == nil {
+			if p == nil || lowQualityPeer(p.Peer) {
 				return 0
 			}
 			return p.progress.Epoch
@@ -1349,9 +1349,16 @@ func (h *handler) BroadcastEvent(event *inter.EventPayload, passed time.Duration
 
 	fullRecipients := h.decideBroadcastAggressiveness(event.Size(), passed, len(peers))
 
-	// Broadcast of full event to a subset of peers
-	fullBroadcast := peers[:fullRecipients]
-	hashBroadcast := peers[fullRecipients:]
+	// Exclude low quality peers from fullBroadcast
+	var fullBroadcast = make([]*peer, 0, fullRecipients)
+	var hashBroadcast = make([]*peer, 0, len(peers))
+	for _, p := range peers {
+		if !lowQualityPeer(p.Peer) && len(fullBroadcast) < fullRecipients {
+			fullBroadcast = append(fullBroadcast, p)
+		} else {
+			hashBroadcast = append(hashBroadcast, p)
+		}
+	}
 	for _, peer := range fullBroadcast {
 		peer.AsyncSendEvents(inter.EventPayloads{event}, peer.queue)
 	}

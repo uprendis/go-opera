@@ -572,6 +572,12 @@ func (p *snapPeer) info() *snapPeerInfo {
 	}
 }
 
+// lowQualityPeer returns true if peer is underperforming
+func lowQualityPeer(p *p2p.Peer) bool {
+	// if not running snapsync - it's typically a bot
+	return !eligibleForSnap(p)
+}
+
 // eligibleForSnap checks eligibility of a peer for a snap protocol. A peer is eligible for a snap if it advertises `snap` sattelite protocol along with `opera` protocol.
 func eligibleForSnap(p *p2p.Peer) bool {
 	return p.RunningCap(ProtocolName, []uint{FTM63}) && p.RunningCap(snap.ProtocolName, snap.ProtocolVersions)
