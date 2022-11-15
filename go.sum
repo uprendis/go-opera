@@ -39,8 +39,6 @@ github.com/CloudyKit/jet v2.1.3-0.20180809161101-62edd43e4f88+incompatible/go.mo
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.4.5 h1:EndNeuB0l9syBZhut0wns3gV1hL8zX8LIu6ZiVHWLIQ=
 github.com/DataDog/zstd v1.4.5/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
-github.com/Fantom-foundation/go-ethereum v1.10.8-ftm-rc7 h1:wt1bhCeb3E0qzDV2iuv2qYlNDO/j8DFJfzVHSnevVOU=
-github.com/Fantom-foundation/go-ethereum v1.10.8-ftm-rc7/go.mod h1:IeQDjWCNBj/QiWIPosfF6/kRC6pHPNs7W7LfBzjj+P4=
 github.com/Fantom-foundation/lachesis-base v0.0.0-20221101131534-22299068014e h1:MrNcnBTl5UOn7d1qVb+BfKx+BPZDdfQm1CUDzQkOhEg=
 github.com/Fantom-foundation/lachesis-base v0.0.0-20221101131534-22299068014e/go.mod h1:CFMonaK1v/QHwpjLszuycFDgLXNazZqZxciwhKwXDVQ=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
@@ -541,6 +539,10 @@ github.com/uber/jaeger-lib v2.2.0+incompatible h1:MxZXOiR2JuoANZ3J6DE/U0kSFv/eJ/
 github.com/uber/jaeger-lib v2.2.0+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
+github.com/uprendis/go-ethereum v1.9.7-0.20221117104240-1536e0c45ab0 h1:FTsfMlfm8pMtqrAd+jHDTMsDRjLGwknwfJFANI1oFCg=
+github.com/uprendis/go-ethereum v1.9.7-0.20221117104240-1536e0c45ab0/go.mod h1:IeQDjWCNBj/QiWIPosfF6/kRC6pHPNs7W7LfBzjj+P4=
+github.com/uprendis/go-ethereum v1.9.7-0.20221117105111-ff54a31f7425 h1:fH5gvYMr/WUTP2paTa3V7JiwRlYRxV7guE5QBjgs9iE=
+github.com/uprendis/go-ethereum v1.9.7-0.20221117105111-ff54a31f7425/go.mod h1:IeQDjWCNBj/QiWIPosfF6/kRC6pHPNs7W7LfBzjj+P4=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=

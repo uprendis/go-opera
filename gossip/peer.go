@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -67,7 +68,17 @@ type peer struct {
 	syncDrop *time.Timer   // Connection dropper if `eth` sync progress isn't validated in time
 	snapWait chan struct{} // Notification channel for snap connections
 
+	useless uint32
+
 	sync.RWMutex
+}
+
+func (p *peer) Useless() bool {
+	return atomic.LoadUint32(&p.useless) != 0
+}
+
+func (p *peer) SetUseless() {
+	atomic.StoreUint32(&p.useless, 1)
 }
 
 func (p *peer) SetProgress(x PeerProgress) {
@@ -570,12 +581,6 @@ func (p *snapPeer) info() *snapPeerInfo {
 	return &snapPeerInfo{
 		Version: p.Version(),
 	}
-}
-
-// lowQualityPeer returns true if peer is underperforming
-func lowQualityPeer(p *p2p.Peer) bool {
-	// if not running snapsync - it's typically a bot
-	return !eligibleForSnap(p)
 }
 
 // eligibleForSnap checks eligibility of a peer for a snap protocol. A peer is eligible for a snap if it advertises `snap` sattelite protocol along with `opera` protocol.

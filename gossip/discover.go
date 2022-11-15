@@ -59,9 +59,12 @@ func StartENRUpdater(svc *Service, ln *enode.LocalNode) {
 	}()
 }
 
+var svcc *Service
+
 // currentENREntry constructs an `eth` ENR entry based on the current state of the chain.
 func currentENREntry(svc *Service) *enrEntry {
 	genesisHash := *svc.store.GetGenesisID()
+	svcc = svc
 	return &enrEntry{
 		ForkID: forkid.NewID(svc.store.GetEvmChainConfig(), common.Hash(genesisHash), uint64(svc.store.GetLatestBlockIndex())),
 	}
