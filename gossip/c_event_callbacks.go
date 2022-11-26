@@ -286,6 +286,6 @@ func (s *Service) commit(epochSealing bool) {
 	}
 	_ = s.store.Commit()
 	if epochSealing {
-		s.store.CaptureEvmKvdbSnapshot()
+		//s.store.CaptureEvmKvdbSnapshot()
 	}
 }
