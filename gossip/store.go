@@ -18,7 +18,6 @@ import (
 	"github.com/Fantom-foundation/go-opera/logger"
 	"github.com/Fantom-foundation/go-opera/utils/adapters/snap2kvdb"
 	"github.com/Fantom-foundation/go-opera/utils/eventid"
-	"github.com/Fantom-foundation/go-opera/utils/randat"
 	"github.com/Fantom-foundation/go-opera/utils/rlpstore"
 	"github.com/Fantom-foundation/go-opera/utils/switchable"
 )
@@ -167,8 +166,7 @@ func (s *Store) Close() {
 
 func (s *Store) IsCommitNeeded() bool {
 	// randomize flushing criteria for each epoch so that nodes would desynchronize flushes
-	ratio := 900 + randat.RandAt(uint64(s.GetEpoch()))%100
-	return s.isCommitNeeded(ratio, ratio)
+	return s.isCommitNeeded(1000, 1000)
 }
 
 func (s *Store) isCommitNeeded(sc, tc uint64) bool {
