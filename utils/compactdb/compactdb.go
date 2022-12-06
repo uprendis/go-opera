@@ -81,7 +81,7 @@ func (s *loggedStore) StartLogging() {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		ticker := time.NewTicker(16 * time.Second)
+		ticker := time.NewTicker(30 * time.Second)
 		for {
 			select {
 			case <-ticker.C:
@@ -125,18 +125,15 @@ func Compact(unprefixedDB kvdb.Store, loggingName string) error {
 		if last == nil {
 			continue
 		}
-		println(b, hexutils.BytesToHex(first), hexutils.BytesToHex(last))
 		keySize := len(last)
 		if keySize < len(first) {
 			keySize = len(first)
 		}
 		first = common.RightPadBytes(first, keySize-len(first))
 		last = common.RightPadBytes(last, keySize-len(last))
-		println(b, hexutils.BytesToHex(first), hexutils.BytesToHex(last))
 		firstBn := new(big.Int).SetBytes(first)
 		lastBn := new(big.Int).SetBytes(last)
 		diff := new(big.Int).Sub(lastBn, firstBn)
-		println(b, firstBn.String(), lastBn.String(), diff.String())
 		if diff.Cmp(big.NewInt(10000)) < 0 {
 			// short circuit if too few keys
 			err := prefixed.Compact(nil, nil)
