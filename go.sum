@@ -620,8 +620,8 @@ github.com/uber/jaeger-lib v2.2.0+incompatible h1:MxZXOiR2JuoANZ3J6DE/U0kSFv/eJ/
 github.com/uber/jaeger-lib v2.2.0+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
-github.com/uprendis/lachesis-base v0.0.0-20221206054106-5f7a758f992b h1:AP1uA/nHnJXA8ZYXnvNEMkBhyOfNT930WH8w+md89xc=
-github.com/uprendis/lachesis-base v0.0.0-20221206054106-5f7a758f992b/go.mod h1:YWx9D/y+WCiOkxjw+0FTMQAerfGfhfL/LMEMWp0f3Bw=
+github.com/uprendis/lachesis-base v0.0.0-20221206074237-28a848c2af21 h1:SARg/rJ/2VlNIXbmY6JSOLg2pZnlBV1tZcwchlJgYZo=
+github.com/uprendis/lachesis-base v0.0.0-20221206074237-28a848c2af21/go.mod h1:YWx9D/y+WCiOkxjw+0FTMQAerfGfhfL/LMEMWp0f3Bw=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=

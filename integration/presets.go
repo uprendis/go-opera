@@ -97,34 +97,7 @@ func Pbl1RuntimeDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCac
 }
 
 func Pbl1GenesisDBsCacheConfig(scale func(uint64) uint64, fdlimit uint64) DBsCacheConfig {
-	return DBsCacheConfig{
-		Table: map[string]DBCacheConfig{
-			"main": {
-				Cache:   scale(1000 * opt.MiB),
-				Fdlimit: fdlimit*1000/3000 + 1,
-			},
-			"evm-data": {
-				Cache:   scale(1000 * opt.MiB),
-				Fdlimit: fdlimit*1000/3000 + 1,
-			},
-			"evm-logs": {
-				Cache:   scale(1000 * opt.MiB),
-				Fdlimit: fdlimit*1000/3000 + 1,
-			},
-			"events": {
-				Cache:   scale(1 * opt.MiB),
-				Fdlimit: fdlimit*1/3000 + 1,
-			},
-			"epoch-%d": {
-				Cache:   scale(1 * opt.MiB),
-				Fdlimit: fdlimit*1/3000 + 1,
-			},
-			"": {
-				Cache:   16 * opt.MiB,
-				Fdlimit: fdlimit/100 + 1,
-			},
-		},
-	}
+	return Pbl1RuntimeDBsCacheConfig(scale, fdlimit)
 }
 
 /*
