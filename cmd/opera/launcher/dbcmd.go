@@ -85,7 +85,7 @@ func makeUncheckedCachedDBsProducers(chaindataDir string) map[multidb.TypeName]k
 	dbTypes, _ := integration.SupportedDBs(chaindataDir, integration.DBsCacheConfig{
 		Table: map[string]integration.DBCacheConfig{
 			"": {
-				Cache:   1024 * opt.MiB,
+				Cache:   460 * opt.MiB,
 				Fdlimit: uint64(utils.MakeDatabaseHandles() / 2),
 			},
 		},
