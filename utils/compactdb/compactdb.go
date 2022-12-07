@@ -26,7 +26,7 @@ func firstKey(db kvdb.Store) []byte {
 	if !it.Next() {
 		return nil
 	}
-	return it.Key()
+	return common.CopyBytes(it.Key())
 }
 
 func lastKey(db kvdb.Store) []byte {
@@ -69,6 +69,7 @@ type loggedStore struct {
 
 func (s *loggedStore) Compact(start []byte, limit []byte) error {
 	s.currentOp.Store(limit)
+	//println(hexutils.BytesToHex(start), hexutils.BytesToHex(limit))
 	err := s.Store.Compact(start, limit)
 	if err != nil {
 		log.Error("Compaction error", "name", s.name, "err", err)
@@ -81,7 +82,7 @@ func (s *loggedStore) StartLogging() {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(1 * time.Second)
 		for {
 			select {
 			case <-ticker.C:
@@ -106,6 +107,67 @@ func (s *loggedStore) StopLogging() {
 	s.wg.Wait()
 }
 
+func compact(db kvdb.Store, prefix []byte) error {
+	nonEmptyPrefixes := make([]byte, 0, 256)
+	for b := 0; b < 256; b++ {
+		if !isEmptyDB(table.New(db, append(prefix, byte(b)))) {
+			nonEmptyPrefixes = append(nonEmptyPrefixes, byte(b))
+		}
+	}
+	if len(nonEmptyPrefixes) == 0 {
+		return nil
+	}
+	if len(nonEmptyPrefixes) != 1 && len(nonEmptyPrefixes) < 50 {
+		// if data is split among tables, then compact each table individually
+		for _, b := range nonEmptyPrefixes {
+			err := compact(db, append(prefix, b))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	//println("->", hexutils.BytesToHex(prefix), len(nonEmptyPrefixes))
+	prefixed := table.New(db, append(prefix))
+	first := firstKey(prefixed)
+	if first == nil {
+		return nil
+	}
+	last := lastKey(prefixed)
+	if last == nil {
+		return nil
+	}
+	keySize := len(last)
+	if keySize < len(first) {
+		keySize = len(first)
+	}
+	first = common.RightPadBytes(first, keySize)
+	last = common.RightPadBytes(last, keySize)
+	firstBn := new(big.Int).SetBytes(first)
+	lastBn := new(big.Int).SetBytes(last)
+	diff := new(big.Int).Sub(lastBn, firstBn)
+	//println(hexutils.BytesToHex(prefix), hexutils.BytesToHex(first), hexutils.BytesToHex(last), diff.String())
+	if diff.Cmp(big.NewInt(10000)) < 0 {
+		// short circuit if too few keys
+		err := prefixed.Compact(nil, nil)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	var prev []byte
+	for i := 32; i >= 1; i-- {
+		until := addToPrefix(firstBn, new(big.Int).Div(diff, big.NewInt(int64(i))), keySize)
+		err := prefixed.Compact(prev, until)
+		if err != nil {
+			return err
+		}
+		prev = common.CopyBytes(until)
+	}
+	return nil
+}
+
 func Compact(unprefixedDB kvdb.Store, loggingName string) error {
 	loggedDB := &loggedStore{
 		Store: unprefixedDB,
@@ -115,42 +177,5 @@ func Compact(unprefixedDB kvdb.Store, loggingName string) error {
 	loggedDB.StartLogging()
 	defer loggedDB.StopLogging()
 
-	for b := 0; b < 256; b++ {
-		prefixed := table.New(loggedDB, []byte{byte(b)})
-		first := firstKey(prefixed)
-		if first == nil {
-			continue
-		}
-		last := lastKey(prefixed)
-		if last == nil {
-			continue
-		}
-		keySize := len(last)
-		if keySize < len(first) {
-			keySize = len(first)
-		}
-		first = common.RightPadBytes(first, keySize-len(first))
-		last = common.RightPadBytes(last, keySize-len(last))
-		firstBn := new(big.Int).SetBytes(first)
-		lastBn := new(big.Int).SetBytes(last)
-		diff := new(big.Int).Sub(lastBn, firstBn)
-		if diff.Cmp(big.NewInt(10000)) < 0 {
-			// short circuit if too few keys
-			err := prefixed.Compact(nil, nil)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		var prev []byte
-		for i := 32; i >= 1; i-- {
-			until := addToPrefix(firstBn, new(big.Int).Div(diff, big.NewInt(int64(i))), keySize)
-			err := prefixed.Compact(prev, until)
-			if err != nil {
-				return err
-			}
-			prev = common.CopyBytes(until)
-		}
-	}
-	return nil
+	return compact(loggedDB, []byte{})
 }
