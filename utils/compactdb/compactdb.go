@@ -12,6 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/status-im/keycard-go/hexutils"
+
+	"github.com/Fantom-foundation/go-opera/utils"
 )
 
 func isEmptyDB(db kvdb.Iteratee) bool {
@@ -67,10 +69,15 @@ type loggedStore struct {
 	quit chan struct{}
 }
 
-func (s *loggedStore) Compact(start []byte, limit []byte) error {
+func (s *loggedStore) Compact(_ []byte, limit []byte) error {
+	// ignore 'start' argument and instead substitute previous `limit`
+	var prev []byte
+	if prevI := s.currentOp.Load(); prevI != nil {
+		prev = prevI.([]byte)
+	}
 	s.currentOp.Store(limit)
 	//println(hexutils.BytesToHex(start), hexutils.BytesToHex(limit))
-	err := s.Store.Compact(start, limit)
+	err := s.Store.Compact(prev, limit)
 	if err != nil {
 		log.Error("Compaction error", "name", s.name, "err", err)
 		return err
@@ -107,7 +114,7 @@ func (s *loggedStore) StopLogging() {
 	s.wg.Wait()
 }
 
-func compact(db kvdb.Store, prefix []byte) error {
+func compact(db *loggedStore, prefix []byte) error {
 	nonEmptyPrefixes := make([]byte, 0, 256)
 	for b := 0; b < 256; b++ {
 		if !isEmptyDB(table.New(db, append(prefix, byte(b)))) {
@@ -129,7 +136,7 @@ func compact(db kvdb.Store, prefix []byte) error {
 	}
 
 	//println("->", hexutils.BytesToHex(prefix), len(nonEmptyPrefixes))
-	prefixed := table.New(db, append(prefix))
+	prefixed := utils.NewTableOrSelf(db, append(prefix))
 	first := firstKey(prefixed)
 	if first == nil {
 		return nil
@@ -156,14 +163,16 @@ func compact(db kvdb.Store, prefix []byte) error {
 		}
 		return nil
 	}
-	var prev []byte
 	for i := 32; i >= 1; i-- {
 		until := addToPrefix(firstBn, new(big.Int).Div(diff, big.NewInt(int64(i))), keySize)
-		err := prefixed.Compact(prev, until)
+		err := prefixed.Compact(nil, until)
 		if err != nil {
 			return err
 		}
-		prev = common.CopyBytes(until)
+	}
+	if len(prefix) == 0 {
+		// compact until the end as last operation
+		return prefixed.Compact(nil, nil)
 	}
 	return nil
 }
