@@ -47,7 +47,7 @@ func compact(db *contCompacter, prefix []byte, iters int) error {
 
 	prefixed := utils.NewTableOrSelf(db, append(prefix))
 	first, _, diff := keysRange(prefixed)
-	if diff.Cmp(big.NewInt(int64(iters*100000))) < 0 {
+	if diff.Cmp(big.NewInt(int64(iters+10000))) < 0 {
 		// skip if too few keys and compact it along with next range
 		return nil
 	}
@@ -84,10 +84,6 @@ func Compact(db kvdb.Store, loggingName string, sizePerIter uint64) error {
 	if iters <= 1 {
 		// short circuit if too few iterations
 		return loggedDB.Compact(nil, nil)
-	}
-	if iters > 256 {
-		// cap number of iterations to prevent rounding issues
-		iters = 256
 	}
 
 	compacter := &contCompacter{

@@ -2076,7 +2076,7 @@ func (api *PrivateDebugAPI) ChaindbProperty(property string) (string, error) {
 // ChaindbCompact flattens the entire key-value database into a single level,
 // removing all unused slots and merging all keys.
 func (api *PrivateDebugAPI) ChaindbCompact() error {
-	if err := compactdb.Compact(ethdb2kvdb.Wrap(api.b.ChainDb()), "EVM", 64 * opt.GiB); err != nil {
+	if err := compactdb.Compact(ethdb2kvdb.Wrap(api.b.ChainDb()), "EVM", 64*opt.GiB); err != nil {
 		log.Error("Database compaction failed", "err", err)
 		return err
 	}

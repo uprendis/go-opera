@@ -15,11 +15,11 @@ import (
 func TestLastKey(t *testing.T) {
 	testLastKey(t, memorydb.New())
 	dir := tmpDir("test-last-key")
-	ldb, err := leveldb.New(path.Join(dir, "ldb"), 16 * opt.MiB, 64, nil, nil)
+	ldb, err := leveldb.New(path.Join(dir, "ldb"), 16*opt.MiB, 64, nil, nil)
 	require.NoError(t, err)
 	defer ldb.Close()
 	testLastKey(t, ldb)
-	pbl, err := pebble.New(path.Join(dir, "pbl"), 16 * opt.MiB, 64, nil, nil)
+	pbl, err := pebble.New(path.Join(dir, "pbl"), 16*opt.MiB, 64, nil, nil)
 	require.NoError(t, err)
 	defer pbl.Close()
 	testLastKey(t, pbl)

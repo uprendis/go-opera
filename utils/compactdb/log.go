@@ -12,8 +12,7 @@ import (
 
 type loggedCompacter struct {
 	kvdb.Store
-	lastLog time.Time
-	name    string
+	name string
 
 	currentOp atomic.Value
 
@@ -39,7 +38,7 @@ func (s *loggedCompacter) StartLogging() {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		ticker := time.NewTicker(16 * time.Second)
+		ticker := time.NewTicker(time.Minute)
 		for {
 			select {
 			case <-ticker.C:
