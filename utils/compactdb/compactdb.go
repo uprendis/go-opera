@@ -1,118 +1,15 @@
 package compactdb
 
 import (
-	"bytes"
+	"errors"
 	"math/big"
-	"sync"
-	"sync/atomic"
-	"time"
+	"strconv"
 
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/status-im/keycard-go/hexutils"
 
 	"github.com/Fantom-foundation/go-opera/utils"
 )
-
-func isEmptyDB(db kvdb.Iteratee) bool {
-	it := db.NewIterator(nil, nil)
-	defer it.Release()
-	return !it.Next()
-}
-
-func firstKey(db kvdb.Store) []byte {
-	it := db.NewIterator(nil, nil)
-	defer it.Release()
-	if !it.Next() {
-		return nil
-	}
-	return common.CopyBytes(it.Key())
-}
-
-func lastKey(db kvdb.Store) []byte {
-	var start []byte
-	for {
-		for b := 0xff; b >= 0; b-- {
-			if !isEmptyDB(table.New(db, append(start, byte(b)))) {
-				start = append(start, byte(b))
-				break
-			}
-			if b == 0 {
-				return start
-			}
-		}
-	}
-}
-
-func addToPrefix(prefix *big.Int, diff *big.Int, size int) []byte {
-	endBn := new(big.Int).Set(prefix)
-	endBn.Add(endBn, diff)
-	if len(endBn.Bytes()) > size {
-		// overflow
-		return bytes.Repeat([]byte{0xff}, size)
-	}
-	end := endBn.Bytes()
-	res := make([]byte, size-len(end), size)
-	return append(res, end...)
-}
-
-type loggedStore struct {
-	kvdb.Store
-	lastLog time.Time
-	name    string
-
-	currentOp atomic.Value
-
-	wg   sync.WaitGroup
-	quit chan struct{}
-}
-
-func (s *loggedStore) Compact(prev []byte, limit []byte) error {
-	// ignore 'start' argument and instead substitute previous `limit`
-	//var prev []byte
-	//if prevI := s.currentOp.Load(); prevI != nil {
-	//	prev = prevI.([]byte)
-	//}
-	s.currentOp.Store(limit)
-	//println(hexutils.BytesToHex(start), hexutils.BytesToHex(limit))
-	err := s.Store.Compact(prev, limit)
-	if err != nil {
-		log.Error("Compaction error", "name", s.name, "err", err)
-		return err
-	}
-	return nil
-}
-
-func (s *loggedStore) StartLogging() {
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		ticker := time.NewTicker(1 * time.Second)
-		for {
-			select {
-			case <-ticker.C:
-				untilI := s.currentOp.Load()
-				if untilI != nil {
-					until := untilI.([]byte)
-					untilStr := hexutils.BytesToHex(until)
-					if until == nil {
-						untilStr = "end"
-					}
-					log.Info("Compacting DB", "name", s.name, "until", untilStr)
-				}
-			case <-s.quit:
-				return
-			}
-		}
-	}()
-}
-
-func (s *loggedStore) StopLogging() {
-	close(s.quit)
-	s.wg.Wait()
-}
 
 type contCompacter struct {
 	kvdb.Store
@@ -141,54 +38,31 @@ func compact(db *contCompacter, prefix []byte, iters int) error {
 	if len(nonEmptyPrefixes) != 1 && len(nonEmptyPrefixes) < 50 {
 		// if data is split among tables, then compact each table individually
 		for _, b := range nonEmptyPrefixes {
-			err := compact(db, append(prefix, b), iters)
-			if err != nil {
+			if err := compact(db, append(prefix, b), iters); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
 
-	//println("->", hexutils.BytesToHex(prefix), len(nonEmptyPrefixes))
 	prefixed := utils.NewTableOrSelf(db, append(prefix))
-	first := firstKey(prefixed)
-	if first == nil {
+	first, _, diff := keysRange(prefixed)
+	if diff.Cmp(big.NewInt(int64(iters*100000))) < 0 {
+		// skip if too few keys and compact it along with next range
 		return nil
 	}
-	last := lastKey(prefixed)
-	if last == nil {
-		return nil
-	}
-	keySize := len(last)
-	if keySize < len(first) {
-		keySize = len(first)
-	}
-	first = common.RightPadBytes(first, keySize)
-	last = common.RightPadBytes(last, keySize)
 	firstBn := new(big.Int).SetBytes(first)
-	lastBn := new(big.Int).SetBytes(last)
-	diff := new(big.Int).Sub(lastBn, firstBn)
-	//println(hexutils.BytesToHex(prefix), hexutils.BytesToHex(first), hexutils.BytesToHex(last), diff.String())
-	if diff.Cmp(big.NewInt(10000)) < 0 {
-		// short circuit if too few keys
-		err := prefixed.Compact(nil, nil)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
 	for i := iters; i >= 1; i-- {
-		until := addToPrefix(firstBn, new(big.Int).Div(diff, big.NewInt(int64(i))), keySize)
-		err := prefixed.Compact(nil, until)
-		if err != nil {
+		until := addToKey(firstBn, new(big.Int).Div(diff, big.NewInt(int64(i))), len(first))
+		if err := prefixed.Compact(nil, until); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func Compact(db kvdb.Store, loggingName string) error {
-	loggedDB := &loggedStore{
+func Compact(db kvdb.Store, loggingName string, sizePerIter uint64) error {
+	loggedDB := &loggedCompacter{
 		Store: db,
 		name:  loggingName,
 		quit:  make(chan struct{}),
@@ -196,26 +70,32 @@ func Compact(db kvdb.Store, loggingName string) error {
 	loggedDB.StartLogging()
 	defer loggedDB.StopLogging()
 
-	//diskSizeStr, err := db.Stat("disk.size")
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var nDiskSize int64
-	//if nDiskSize, err := strconv.ParseInt(diskSizeStr, 10, 64); err != nil {
-	//	return errors.New("bad syntax of disk size entry")
-	//}
+	// scale iterations number based on total DB size and sizePerIter
+	diskSizeStr, err := db.Stat("disk.size")
+	if err != nil {
+		return err
+	}
+	var nDiskSize int64
+	if nDiskSize, err = strconv.ParseInt(diskSizeStr, 10, 64); err != nil || nDiskSize < 0 {
+		return errors.New("bad syntax of disk size entry")
+	}
 
-	//if err := loggedDB.Compact(nil, []byte{128}); err != nil {
-	//	return err
-	//}
-	//if err := loggedDB.Compact([]byte{128}, nil); err != nil {
-	//	return err
-	//}
-	//return nil
+	iters := uint64(nDiskSize) / sizePerIter
+	if iters <= 1 {
+		// short circuit if too few iterations
+		return loggedDB.Compact(nil, nil)
+	}
+	if iters > 256 {
+		// cap number of iterations to prevent rounding issues
+		iters = 256
+	}
+
 	compacter := &contCompacter{
 		Store: loggedDB,
 	}
-
-	return compact(compacter, []byte{}, 2)
+	err = compact(compacter, []byte{}, int(iters))
+	if err != nil {
+		return err
+	}
+	return compacter.Compact(nil, nil)
 }

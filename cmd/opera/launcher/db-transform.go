@@ -12,6 +12,7 @@ import (
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/integration"
@@ -290,7 +291,7 @@ func transformComponent(datadir string, dbTypes, tmpDbTypes map[multidb.TypeName
 					keys = keys[:0]
 					values = values[:0]
 				}
-				err = compactdb.Compact(newTable, newHumanName)
+				err = compactdb.Compact(newTable, newHumanName, 16 * opt.GiB)
 				if err != nil {
 					log.Error("Database compaction failed", "err", err)
 					return err
