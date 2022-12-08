@@ -114,7 +114,21 @@ func (s *loggedStore) StopLogging() {
 	s.wg.Wait()
 }
 
-func compact(db *loggedStore, prefix []byte) error {
+type contCompacter struct {
+	kvdb.Store
+	prev []byte
+}
+
+func (s *contCompacter) Compact(_ []byte, limit []byte) error {
+	err := s.Store.Compact(s.prev, limit)
+	if err != nil {
+		return err
+	}
+	s.prev = limit
+	return nil
+}
+
+func compact(db *contCompacter, prefix []byte, iters int) error {
 	nonEmptyPrefixes := make([]byte, 0, 256)
 	for b := 0; b < 256; b++ {
 		if !isEmptyDB(table.New(db, append(prefix, byte(b)))) {
@@ -127,7 +141,7 @@ func compact(db *loggedStore, prefix []byte) error {
 	if len(nonEmptyPrefixes) != 1 && len(nonEmptyPrefixes) < 50 {
 		// if data is split among tables, then compact each table individually
 		for _, b := range nonEmptyPrefixes {
-			err := compact(db, append(prefix, b))
+			err := compact(db, append(prefix, b), iters)
 			if err != nil {
 				return err
 			}
@@ -163,16 +177,12 @@ func compact(db *loggedStore, prefix []byte) error {
 		}
 		return nil
 	}
-	for i := 32; i >= 1; i-- {
+	for i := iters; i >= 1; i-- {
 		until := addToPrefix(firstBn, new(big.Int).Div(diff, big.NewInt(int64(i))), keySize)
 		err := prefixed.Compact(nil, until)
 		if err != nil {
 			return err
 		}
-	}
-	if len(prefix) == 0 {
-		// compact until the end as last operation
-		return prefixed.Compact(nil, nil)
 	}
 	return nil
 }
@@ -196,13 +206,16 @@ func Compact(db kvdb.Store, loggingName string) error {
 	//	return errors.New("bad syntax of disk size entry")
 	//}
 
-	if err := loggedDB.Compact(nil, []byte{128}); err != nil {
-		return err
+	//if err := loggedDB.Compact(nil, []byte{128}); err != nil {
+	//	return err
+	//}
+	//if err := loggedDB.Compact([]byte{128}, nil); err != nil {
+	//	return err
+	//}
+	//return nil
+	compacter := &contCompacter{
+		Store: loggedDB,
 	}
-	if err := loggedDB.Compact([]byte{128}, nil); err != nil {
-		return err
-	}
-	return nil
 
-	return compact(loggedDB, []byte{})
+	return compact(compacter, []byte{}, 2)
 }
