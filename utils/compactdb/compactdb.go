@@ -69,12 +69,12 @@ type loggedStore struct {
 	quit chan struct{}
 }
 
-func (s *loggedStore) Compact(_ []byte, limit []byte) error {
+func (s *loggedStore) Compact(prev []byte, limit []byte) error {
 	// ignore 'start' argument and instead substitute previous `limit`
-	var prev []byte
-	if prevI := s.currentOp.Load(); prevI != nil {
-		prev = prevI.([]byte)
-	}
+	//var prev []byte
+	//if prevI := s.currentOp.Load(); prevI != nil {
+	//	prev = prevI.([]byte)
+	//}
 	s.currentOp.Store(limit)
 	//println(hexutils.BytesToHex(start), hexutils.BytesToHex(limit))
 	err := s.Store.Compact(prev, limit)
@@ -177,14 +177,32 @@ func compact(db *loggedStore, prefix []byte) error {
 	return nil
 }
 
-func Compact(unprefixedDB kvdb.Store, loggingName string) error {
+func Compact(db kvdb.Store, loggingName string) error {
 	loggedDB := &loggedStore{
-		Store: unprefixedDB,
+		Store: db,
 		name:  loggingName,
 		quit:  make(chan struct{}),
 	}
 	loggedDB.StartLogging()
 	defer loggedDB.StopLogging()
+
+	//diskSizeStr, err := db.Stat("disk.size")
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//var nDiskSize int64
+	//if nDiskSize, err := strconv.ParseInt(diskSizeStr, 10, 64); err != nil {
+	//	return errors.New("bad syntax of disk size entry")
+	//}
+
+	if err := loggedDB.Compact(nil, []byte{128}); err != nil {
+		return err
+	}
+	if err := loggedDB.Compact([]byte{128}, nil); err != nil {
+		return err
+	}
+	return nil
 
 	return compact(loggedDB, []byte{})
 }

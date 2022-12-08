@@ -620,8 +620,8 @@ github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGr
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/uprendis/go-ethereum v1.9.7-0.20221207072110-adb4ef1e729c h1:mBptBfc1eFgUL1ZrCJr3E4eQqdIGq3r+n2QYS0vgvp0=
 github.com/uprendis/go-ethereum v1.9.7-0.20221207072110-adb4ef1e729c/go.mod h1:IeQDjWCNBj/QiWIPosfF6/kRC6pHPNs7W7LfBzjj+P4=
-github.com/uprendis/lachesis-base v0.0.0-20221207012027-e26d0693a22f h1:5bNYxWDwkjpIRAojf/dUa5vk8eKZqf4dwUbLj89gw9o=
-github.com/uprendis/lachesis-base v0.0.0-20221207012027-e26d0693a22f/go.mod h1:YWx9D/y+WCiOkxjw+0FTMQAerfGfhfL/LMEMWp0f3Bw=
+github.com/uprendis/lachesis-base v0.0.0-20221208030513-cc7485446505 h1:9zLcfz9Le2fVJuAyJOFIkkoHr6WWcKaOqIkUrriIxN8=
+github.com/uprendis/lachesis-base v0.0.0-20221208030513-cc7485446505/go.mod h1:YWx9D/y+WCiOkxjw+0FTMQAerfGfhfL/LMEMWp0f3Bw=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
