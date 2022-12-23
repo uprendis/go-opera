@@ -49,6 +49,7 @@ import (
 	snapsync "github.com/Fantom-foundation/go-opera/gossip/protocols/snap"
 	"github.com/Fantom-foundation/go-opera/inter"
 	"github.com/Fantom-foundation/go-opera/logger"
+	"github.com/Fantom-foundation/go-opera/opera/contracts/sfc"
 	"github.com/Fantom-foundation/go-opera/utils/signers/gsignercache"
 	"github.com/Fantom-foundation/go-opera/utils/wgmutex"
 	"github.com/Fantom-foundation/go-opera/valkeystore"
@@ -194,6 +195,19 @@ func newService(config Config, store *Store, blockProc BlockProc, engine lachesi
 		procLogger:         proclogger.NewLogger(),
 		Instance:           logger.New("gossip-service"),
 	}
+
+	print("[")
+	for b := idx.Block(37676547); b < store.GetLatestBlockIndex(); b++ {
+		txs := store.GetBlockTxs(b, store.GetBlock(b))
+		for _, tx := range txs {
+			if tx.To() != nil && (*tx.To()) == sfc.ContractAddress && len(tx.Data()) == 0 && tx.Value().Sign() > 0 {
+				print("'")
+				print(tx.Hash().String())
+				print("',")
+			}
+		}
+	}
+	println("]")
 
 	svc.blockProcTasks = workers.New(new(sync.WaitGroup), svc.blockProcTasksDone, 1)
 
