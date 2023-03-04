@@ -178,16 +178,16 @@ func makeEngine(chaindataDir string, g *genesis.Genesis, genesisProc bool, cfg C
 		setGenesisComplete(chaindataDir)
 	}
 	// Compact DBs after first launch
-	if genesisProc {
-		genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
-		for typ, p := range genesisProducers {
-			for _, name := range p.Names() {
-				if err := compactDB(typ, name, p); err != nil {
-					return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
-				}
-			}
-		}
-	}
+	//if genesisProc {
+	//	genesisProducers, _ := SupportedDBs(chaindataDir, cfg.DBs.GenesisCache)
+	//	for typ, p := range genesisProducers {
+	//		for _, name := range p.Names() {
+	//			if err := compactDB(typ, name, p); err != nil {
+	//				return nil, nil, nil, nil, gossip.BlockProc{}, nil, err
+	//			}
+	//		}
+	//	}
+	//}
 	// Check DBs are synced
 	{
 		err := CheckStateInitialized(chaindataDir, cfg.DBs)
