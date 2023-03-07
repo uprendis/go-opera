@@ -1,18 +1,55 @@
 package launcher
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/leveldb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/Fantom-foundation/go-opera/inter"
 )
 
+func openDB(path string) kvdb.Store {
+	var db kvdb.Store
+	var err error
+	db, err = leveldb.New(path, 400 * opt.MiB, utils.MakeDatabaseHandles()/4, nil, nil)
+	if err != nil {
+		db, err = pebble.New(path, 40 * opt.MiB, utils.MakeDatabaseHandles()/4, nil, nil)
+	}
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
 func checkEvm(ctx *cli.Context) error {
+	if len(ctx.Args()) != 2 {
+		utils.Fatalf("This command requires 2 arguments.")
+	}
+
+	adb := openDB(ctx.Args()[0])
+	bdb := openDB(ctx.Args()[1])
+
+	it := adb.NewIterator(nil, nil)
+	for it.Next() {
+		val, _ := bdb.Get(it.Key())
+		if val == nil {
+			println("missing", common.Bytes2Hex(it.Key()), common.Bytes2Hex(it.Value()))
+		} else if !bytes.Equal(val, it.Value()) {
+			println("mismatch", common.Bytes2Hex(it.Key()), common.Bytes2Hex(it.Value()), common.Bytes2Hex(val))
+		}
+	}
+
+	return nil
+
 	if len(ctx.Args()) != 0 {
 		utils.Fatalf("This command doesn't require an argument.")
 	}
