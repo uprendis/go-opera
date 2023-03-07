@@ -1,7 +1,7 @@
 package launcher
 
 import (
-	"compress/gzip"
+	gzip "github.com/klauspost/pgzip"
 	"io"
 	"os"
 	"strconv"

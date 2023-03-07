@@ -43,6 +43,8 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
+require github.com/klauspost/pgzip v1.0.2-0.20170402124221-0bf5dcad4ada
+
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
@@ -78,6 +80,7 @@ require (
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458 // indirect
 	github.com/klauspost/compress v1.11.13 // indirect
+	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
