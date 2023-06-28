@@ -376,8 +376,21 @@ func (em *Emitter) createEvent(sortedTxs *types.TransactionsByPriceAndNonce) (*i
 	var metric ancestor.Metric
 	err := em.world.Build(mutEvent, func() {
 		// calculate event metric when it is indexed by the vector clock
-		metric = eventMetric(em.quorumIndexer.GetMetricOf(hash.Events{mutEvent.ID()}), mutEvent.Seq())
-		metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
+		if em.fcIndexer != nil {
+			pastMe := em.fcIndexer.ValidatorsPastMe()
+			metric := (ancestor.Metric(pastMe) * piecefunc.DecimalUnit) / ancestor.Metric(em.validators.TotalWeight())
+			if pastMe < em.validators.Quorum() {
+				metric /= 15
+			}
+			if metric < 0.03*piecefunc.DecimalUnit {
+				metric = 0.03 * piecefunc.DecimalUnit
+			}
+			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
+			metric = eventMetric(metric/3, mutEvent.Seq()) // adjustment between quorumIndexer and fcIndexer settings
+		} else if em.quorumIndexer != nil {
+			metric = eventMetric(em.quorumIndexer.GetMetricOf(hash.Events{mutEvent.ID()}), mutEvent.Seq())
+			metric = overheadAdjustedEventMetricF(em.validators.Len(), uint64(em.busyRate.Rate1()*piecefunc.DecimalUnit), metric)
+		}
 	})
 	if err != nil {
 		if err == ErrNotEnoughGasPower {
