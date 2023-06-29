@@ -77,6 +77,8 @@ func (s *Service) GetConsensusCallbacks() lachesis.ConsensusCallbacks {
 	}
 }
 
+var blockT time.Duration
+
 // consensusCallbackBeginBlockFn takes only necessaries for block processing and
 // makes lachesis.BeginBlockFn.
 func consensusCallbackBeginBlockFn(
@@ -187,6 +189,9 @@ func consensusCallbackBeginBlockFn(
 				}
 			},
 			EndBlock: func() (newValidators *pos.Validators) {
+				defer func() {
+					blockT += time.Since(start)
+				}()
 				if atroposTime <= bs.LastBlock.Time {
 					atroposTime = bs.LastBlock.Time + 1
 				}
@@ -435,7 +440,7 @@ func consensusCallbackBeginBlockFn(
 						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 				}
-				if confirmedEvents.Len() != 0 {
+				if false {
 					atomic.StoreUint32(blockBusyFlag, 1)
 					wg.Add(1)
 					err := parallelTasks.Enqueue(func() {
