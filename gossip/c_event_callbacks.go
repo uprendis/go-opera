@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 	"sync/atomic"
+	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
@@ -206,8 +207,14 @@ func (s *Service) ReprocessEpochEvents() {
 	s.bootstrapping = false
 }
 
+var eventT time.Duration
+
 // processEvent extends the engine.Process with gossip-specific actions on each event processing
 func (s *Service) processEvent(e *inter.EventPayload) error {
+	start := time.Now()
+	defer func() {
+		eventT += time.Since(start)
+	}()
 	// s.engineMu is locked here
 	if s.stopped {
 		return errStopped
@@ -266,6 +273,7 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	}
 
 	if newEpoch != oldEpoch {
+		println("==+=", "eventT", eventT.String(), "blockT", blockT.String())
 		s.switchEpochTo(newEpoch)
 	}
 
