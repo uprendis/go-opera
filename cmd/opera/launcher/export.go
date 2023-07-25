@@ -2,14 +2,18 @@ package launcher
 
 import (
 	"compress/gzip"
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/batched"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -151,5 +155,82 @@ func exportEvmKeys(ctx *cli.Context) error {
 		}
 	}
 	log.Info("Exported EVM keys", "dir", fn)
+	return nil
+}
+
+type jsonEpoch struct {
+	Epoch      idx.Epoch
+	Atroposes  []string
+	Validators map[idx.ValidatorID]pos.Weight
+	EventIDs   []string
+	Events     []string
+}
+
+func exportEpoch(ctx *cli.Context, dir string, epoch idx.Epoch, gdb *gossip.Store) error {
+	// Open the file handle
+	fh, err := os.OpenFile(path.Join(dir, fmt.Sprintf("epoch-%d.json", epoch)), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	res := jsonEpoch{}
+	res.Epoch = epoch
+	gdb.ForEachEventRLP(epoch.Bytes(), func(id hash.Event, event rlp.RawValue) bool {
+		if id.Epoch() != epoch {
+			return false
+		}
+		res.Events = append(res.Events, hexutils.BytesToHex(event))
+		res.EventIDs = append(res.EventIDs, id.Hex())
+		return true
+	})
+	bs, es := gdb.GetHistoryBlockEpochState(epoch)
+	res.Validators = make(map[idx.ValidatorID]pos.Weight)
+	for _, v := range es.Validators.IDs() {
+		res.Validators[v] = es.Validators.Get(v)
+	}
+	for b := bs.LastBlock.Idx + 1; ; b++ {
+		block := gdb.GetBlock(b)
+		if block == nil || block.Atropos.Epoch() != epoch {
+			break
+		}
+		res.Atroposes = append(res.Atroposes, block.Atropos.Hex())
+	}
+	enc := json.NewEncoder(fh)
+	enc.SetIndent("", "    ")
+	return enc.Encode(res)
+}
+
+func exportEpochs(ctx *cli.Context) error {
+	if len(ctx.Args()) < 1 {
+		utils.Fatalf("This command requires an argument.")
+	}
+
+	cfg := makeAllConfigs(ctx)
+
+	rawDbs := makeDirectDBsProducer(cfg)
+	gdb := makeGossipStore(rawDbs, cfg)
+	defer gdb.Close()
+
+	dir := ctx.Args().First()
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// first epoch for which we have events
+	var firstEpoch idx.Epoch
+	gdb.ForEachEventRLP(nil, func(id hash.Event, event rlp.RawValue) bool {
+		firstEpoch = id.Epoch()
+		return false
+	})
+
+	log.Info("Exporting epochs to", "dir", dir)
+	for e := firstEpoch; e <= gdb.GetEpoch(); e++ {
+		err := exportEpoch(ctx, dir, e, gdb)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
