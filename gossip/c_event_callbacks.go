@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/Fantom-foundation/lachesis-base/abft"
 	"github.com/Fantom-foundation/lachesis-base/gossip/dagprocessor"
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/vecfc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -274,6 +276,35 @@ func (s *Service) processEvent(e *inter.EventPayload) error {
 	if s.haltCheck != nil && s.haltCheck(oldEpoch, newEpoch, e.MedianTime().Time()) {
 		// halt syncing
 		s.stopped = true
+	}
+
+	if oldEpoch != newEpoch && newEpoch == 5883 {
+		//abft.Debug = map[idx.Epoch]hash.Events{}
+		vecfc.Debug = map[vecfc.Kv]bool{}
+	}
+	if newEpoch == 5884 {
+		println("validators")
+		_, es := s.store.GetHistoryBlockEpochState(5883)
+		for _, vid := range es.Validators.IDs() {
+			println(vid, es.Validators.Get(vid))
+		}
+		println("atroposes")
+		_, es = s.store.GetHistoryBlockEpochState(5883)
+		for _, atr := range abft.Debug[5883] {
+			println(atr.Hex())
+		}
+		//println("FC")
+		//enc := json.NewEncoder(os.Stdout)
+		//enc.SetIndent("", "    ")
+		//mmap := map[string]bool{}
+		//for kv, res := range vecfc.Debug {
+		//	mmap[kv.A.Hex() + "---" + kv.B.Hex()] = res
+		//}
+		//if err := enc.Encode(mmap); err != nil {
+		//	panic(err)
+		//}
+		//time.Sleep(10 * time.Second)
+		panic(1)
 	}
 	return nil
 }
