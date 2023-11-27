@@ -6,19 +6,21 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/Fantom-foundation/lachesis-base/hash"
 	"github.com/Fantom-foundation/lachesis-base/inter/dag"
 	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/Fantom-foundation/lachesis-base/kvdb/devnulldb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flaggedproducer"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/leveldb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/multidb"
 	"github.com/Fantom-foundation/lachesis-base/kvdb/pebble"
 	"github.com/Fantom-foundation/lachesis-base/utils/fmtfilter"
+	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/utils/dbutil/asyncflushproducer"
@@ -41,6 +43,40 @@ type DBsCacheConfig struct {
 	Table map[string]DBCacheConfig
 }
 
+type MemOnlyProducer struct {
+	kvdb.IterableDBProducer
+	typ int
+}
+
+var (
+	muDiffs sync.Mutex
+	diffs   = map[int]map[string]*rbt.Tree{}
+	droppedDBs = map[int]map[string]bool{}
+)
+
+func WrapMemOnlyProducer(typ int, p kvdb.IterableDBProducer) MemOnlyProducer {
+	return MemOnlyProducer{
+		IterableDBProducer: p,
+		typ:                typ,
+	}
+}
+
+func (m MemOnlyProducer) OpenDB(name string) (kvdb.Store, error) {
+	db, err := m.IterableDBProducer.OpenDB(name)
+	if err != nil {
+		return nil, err
+	}
+	if isEmptyDB(db) && strings.HasPrefix(name, "epoch") {
+		db.Close()
+		db.Drop()
+		db = devnulldb.New()
+	}
+	memonly := WrapMemOnly(db)
+	memonly.Load(m.typ, name)
+	//return db, nil
+	return memonly, nil
+}
+
 func SupportedDBs(chaindataDir string, cfg DBsCacheConfig) (map[multidb.TypeName]kvdb.IterableDBProducer, map[multidb.TypeName]kvdb.FullDBProducer) {
 	if chaindataDir == "inmemory" || chaindataDir == "" {
 		chaindataDir, _ = ioutil.TempDir("", "opera-tmp")
@@ -50,21 +86,21 @@ func SupportedDBs(chaindataDir string, cfg DBsCacheConfig) (map[multidb.TypeName
 		utils.Fatalf("Failed to create DB cacher: %v", err)
 	}
 
-	leveldbFsh := dbcounter.Wrap(leveldb.NewProducer(path.Join(chaindataDir, "leveldb-fsh"), cacher), true)
-	leveldbFlg := dbcounter.Wrap(leveldb.NewProducer(path.Join(chaindataDir, "leveldb-flg"), cacher), true)
-	leveldbDrc := dbcounter.Wrap(leveldb.NewProducer(path.Join(chaindataDir, "leveldb-drc"), cacher), true)
-	pebbleFsh := dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-fsh"), cacher), true)
-	pebbleFlg := dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-flg"), cacher), true)
-	pebbleDrc := dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-drc"), cacher), true)
+	leveldbFsh := WrapMemOnlyProducer(1, dbcounter.Wrap(leveldb.NewProducer(path.Join(chaindataDir, "leveldb-fsh"), cacher), true))
+	leveldbFlg := WrapMemOnlyProducer(2, dbcounter.Wrap(leveldb.NewProducer(path.Join(chaindataDir, "leveldb-flg"), cacher), true))
+	leveldbDrc := WrapMemOnlyProducer(3, dbcounter.Wrap(leveldb.NewProducer(path.Join(chaindataDir, "leveldb-drc"), cacher), true))
+	pebbleFsh := WrapMemOnlyProducer(4, dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-fsh"), cacher), true))
+	pebbleFlg := WrapMemOnlyProducer(5, dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-flg"), cacher), true))
+	pebbleDrc := WrapMemOnlyProducer(6, dbcounter.Wrap(pebble.NewProducer(path.Join(chaindataDir, "pebble-drc"), cacher), true))
 
-	if metrics.Enabled {
-		leveldbFsh = WrapDatabaseWithMetrics(leveldbFsh)
-		leveldbFlg = WrapDatabaseWithMetrics(leveldbFlg)
-		leveldbDrc = WrapDatabaseWithMetrics(leveldbDrc)
-		pebbleFsh = WrapDatabaseWithMetrics(pebbleFsh)
-		pebbleFlg = WrapDatabaseWithMetrics(pebbleFlg)
-		pebbleDrc = WrapDatabaseWithMetrics(pebbleDrc)
-	}
+	//if metrics.Enabled {
+	//	leveldbFsh = WrapDatabaseWithMetrics(leveldbFsh)
+	//	leveldbFlg = WrapDatabaseWithMetrics(leveldbFlg)
+	//	leveldbDrc = WrapDatabaseWithMetrics(leveldbDrc)
+	//	pebbleFsh = WrapDatabaseWithMetrics(pebbleFsh)
+	//	pebbleFlg = WrapDatabaseWithMetrics(pebbleFlg)
+	//	pebbleDrc = WrapDatabaseWithMetrics(pebbleDrc)
+	//}
 
 	return map[multidb.TypeName]kvdb.IterableDBProducer{
 			"leveldb-fsh": leveldbFsh,

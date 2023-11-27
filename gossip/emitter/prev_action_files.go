@@ -13,13 +13,13 @@ import (
 var openPrevActionFile = utils.OpenFile
 
 func (em *Emitter) writeLastEmittedEventID(id hash.Event) {
-	if em.emittedEventFile == nil {
-		return
-	}
-	_, err := em.emittedEventFile.WriteAt(id.Bytes(), 0)
-	if err != nil {
-		log.Crit("Failed to write event file", "file", em.config.PrevEmittedEventFile.Path, "err", err)
-	}
+	//if em.emittedEventFile == nil {
+	//	return
+	//}
+	//_, err := em.emittedEventFile.WriteAt(id.Bytes(), 0)
+	//if err != nil {
+	//	log.Crit("Failed to write event file", "file", em.config.PrevEmittedEventFile.Path, "err", err)
+	//}
 }
 
 func (em *Emitter) readLastEmittedEventID() *hash.Event {
@@ -39,13 +39,13 @@ func (em *Emitter) readLastEmittedEventID() *hash.Event {
 }
 
 func (em *Emitter) writeLastEmittedBlockVotes(b idx.Block) {
-	if em.emittedBvsFile == nil {
-		return
-	}
-	_, err := em.emittedBvsFile.WriteAt(b.Bytes(), 0)
-	if err != nil {
-		log.Crit("Failed to write BVs file", "file", em.config.PrevBlockVotesFile.Path, "err", err)
-	}
+	//if em.emittedBvsFile == nil {
+	//	return
+	//}
+	//_, err := em.emittedBvsFile.WriteAt(b.Bytes(), 0)
+	//if err != nil {
+	//	log.Crit("Failed to write BVs file", "file", em.config.PrevBlockVotesFile.Path, "err", err)
+	//}
 }
 
 func (em *Emitter) readLastBlockVotes() *idx.Block {
@@ -65,13 +65,13 @@ func (em *Emitter) readLastBlockVotes() *idx.Block {
 }
 
 func (em *Emitter) writeLastEmittedEpochVote(e idx.Epoch) {
-	if em.emittedEvFile == nil {
-		return
-	}
-	_, err := em.emittedEvFile.WriteAt(e.Bytes(), 0)
-	if err != nil {
-		log.Crit("Failed to write BVs file", "file", em.config.PrevEpochVoteFile.Path, "err", err)
-	}
+	//if em.emittedEvFile == nil {
+	//	return
+	//}
+	//_, err := em.emittedEvFile.WriteAt(e.Bytes(), 0)
+	//if err != nil {
+	//	log.Crit("Failed to write BVs file", "file", em.config.PrevEpochVoteFile.Path, "err", err)
+	//}
 }
 
 func (em *Emitter) readLastEpochVote() *idx.Epoch {
