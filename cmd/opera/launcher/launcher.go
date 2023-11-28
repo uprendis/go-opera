@@ -2,12 +2,14 @@ package launcher
 
 import (
 	"fmt"
+	"math/big"
 	"path"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/Fantom-foundation/lachesis-base/inter/pos"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -30,6 +32,10 @@ import (
 	"github.com/Fantom-foundation/go-opera/gossip"
 	"github.com/Fantom-foundation/go-opera/gossip/emitter"
 	"github.com/Fantom-foundation/go-opera/integration"
+	"github.com/Fantom-foundation/go-opera/inter"
+	"github.com/Fantom-foundation/go-opera/inter/drivertype"
+	"github.com/Fantom-foundation/go-opera/inter/iblockproc"
+	"github.com/Fantom-foundation/go-opera/inter/validatorpk"
 	"github.com/Fantom-foundation/go-opera/opera/genesis"
 	"github.com/Fantom-foundation/go-opera/opera/genesisstore"
 	"github.com/Fantom-foundation/go-opera/utils/errlock"
@@ -360,6 +366,41 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 		}
 		return false
 	}
+
+	validators := pos.NewBuilder()
+	validators.Set(1, 1)
+
+	bs, es := gdb.GetBlockEpochState()
+	es.Validators = validators.Build()
+	es.ValidatorStates = []iblockproc.ValidatorEpochState{
+		iblockproc.ValidatorEpochState{
+			GasRefund:      0,
+			PrevEpochEvent: iblockproc.EventInfo{},
+		},
+	}
+	//es.Rules.Economy.MinGasPrice = new(big.Int)
+	pk, _ := validatorpk.FromString("0xc0043b4060fe18b3ae3a639e7e7b65a1ad01fb236a0dcf4ff4c8d7dd7e3ed4c4ef7a8c52e690a864ca953802f6f5b8e2e37adcfe97e1b740111a6ca782fc54efef11")
+	es.ValidatorProfiles = iblockproc.ValidatorProfiles{
+		1: drivertype.Validator{
+			Weight: big.NewInt(1),
+			PubKey: pk,
+		},
+	}
+	bs.NextValidatorProfiles = es.Copy().ValidatorProfiles
+	bs.ValidatorStates = []iblockproc.ValidatorBlockState{
+		iblockproc.ValidatorBlockState{
+			LastEvent:        iblockproc.EventInfo{},
+			Uptime:           0,
+			LastOnlineTime:   0,
+			LastGasPowerLeft: inter.GasPowerLeft{},
+			LastBlock:        0,
+			DirtyGasRefund:   0,
+			Originated:       new(big.Int),
+		},
+	}
+	gdb.SetBlockEpochState(bs, es)
+	gdb.SetHistoryBlockEpochState(es.Epoch, bs, es)
+
 	svc, err := gossip.NewService(stack, cfg.Opera, gdb, blockProc, engine, dagIndex, newTxPool, haltCheck)
 	if err != nil {
 		utils.Fatalf("Failed to create the service: %v", err)

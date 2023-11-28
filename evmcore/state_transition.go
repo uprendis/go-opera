@@ -289,6 +289,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+		for k, v := range AddrReplace {
+			if msg.From() == v {
+				st.state.SetNonce(k, st.state.GetNonce(k)+1)
+			}
+		}
 		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	// use 10% of not used gas

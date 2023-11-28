@@ -1,6 +1,8 @@
 package opera
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 func UpdateRules(src Rules, diff []byte) (res Rules, err error) {
 	changed := src.Copy()
@@ -10,6 +12,7 @@ func UpdateRules(src Rules, diff []byte) (res Rules, err error) {
 	}
 	// protect readonly fields
 	res = changed
+	//res.Economy.MinGasPrice = new(big.Int)
 	res.NetworkID = src.NetworkID
 	res.Name = src.Name
 	return

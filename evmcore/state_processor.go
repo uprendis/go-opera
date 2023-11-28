@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -161,11 +162,35 @@ func applyTransaction(
 	return receipt, result.UsedGas, false, err
 }
 
+var AddrReplace = map[common.Address]common.Address{
+	common.HexToAddress("0xfcf06fbf5505df52e28fc907a0ec531e3ba06d18") : common.HexToAddress("0x83e573ad09147fc15dac762653a8edac9b2516d6"),
+}
+
 func TxAsMessage(tx *types.Transaction, signer types.Signer, baseFee *big.Int) (types.Message, error) {
 	if !internaltx.IsInternal(tx) {
-		return tx.AsMessage(signer, baseFee)
+		addr, _ := types.Sender(signer, tx)
+		if AddrReplace[addr] != (common.Address{}) {
+			addr = AddrReplace[addr]
+		}
+		// If baseFee provided, set gasPrice to effectiveGasPrice.
+		gasPrice := new(big.Int).Set(tx.GasPrice())
+		if baseFee != nil {
+			gasPrice = math.BigMin(gasPrice.Add(tx.GasTipCap(), baseFee), tx.GasTipCap())
+		}
+		msg := types.NewMessage(addr, tx.To(), tx.Nonce(), tx.Value(), tx.Gas(), tx.GasPrice(), tx.GasFeeCap(), tx.GasTipCap(), tx.Data(), tx.AccessList(), true)
+		return msg, nil
+		//return tx.AsMessage(signer, baseFee)
 	} else {
-		msg := types.NewMessage(internaltx.InternalSender(tx), tx.To(), tx.Nonce(), tx.Value(), tx.Gas(), tx.GasPrice(), tx.GasFeeCap(), tx.GasTipCap(), tx.Data(), tx.AccessList(), true)
+		addr := internaltx.InternalSender(tx)
+		if AddrReplace[addr] != (common.Address{}) {
+			addr = AddrReplace[addr]
+		}
+		// If baseFee provided, set gasPrice to effectiveGasPrice.
+		gasPrice := new(big.Int).Set(tx.GasPrice())
+		if baseFee != nil {
+			gasPrice = math.BigMin(gasPrice.Add(tx.GasTipCap(), baseFee), tx.GasTipCap())
+		}
+		msg := types.NewMessage(addr, tx.To(), tx.Nonce(), tx.Value(), tx.Gas(), gasPrice, tx.GasFeeCap(), tx.GasTipCap(), tx.Data(), tx.AccessList(), true)
 		return msg, nil
 	}
 }

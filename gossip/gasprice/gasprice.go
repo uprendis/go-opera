@@ -163,6 +163,7 @@ func (gpo *Oracle) suggestTip(certainty uint64) *big.Int {
 // necessary to add the basefee to the returned number to fall back to the legacy
 // behavior.
 func (gpo *Oracle) SuggestTip(certainty uint64) *big.Int {
+	//return new(big.Int)
 	if gpo.backend == nil {
 		return new(big.Int)
 	}
@@ -192,6 +193,7 @@ func (gpo *Oracle) SuggestTip(certainty uint64) *big.Int {
 
 // EffectiveMinGasPrice returns softly enforced minimum gas price on top of on-chain minimum gas price (base fee)
 func (gpo *Oracle) EffectiveMinGasPrice() *big.Int {
+	//return new(big.Int)
 	if gpo.backend == nil {
 		return new(big.Int).Set(gpo.cfg.MinGasPrice)
 	}
