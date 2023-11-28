@@ -368,7 +368,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	}
 
 	validators := pos.NewBuilder()
-	validators.Set(1, 1)
+	validators.Set(1000, 1)
 
 	bs, es := gdb.GetBlockEpochState()
 	es.Validators = validators.Build()
@@ -381,7 +381,7 @@ func makeNode(ctx *cli.Context, cfg *config, genesisStore *genesisstore.Store) (
 	//es.Rules.Economy.MinGasPrice = new(big.Int)
 	pk, _ := validatorpk.FromString("0xc0043b4060fe18b3ae3a639e7e7b65a1ad01fb236a0dcf4ff4c8d7dd7e3ed4c4ef7a8c52e690a864ca953802f6f5b8e2e37adcfe97e1b740111a6ca782fc54efef11")
 	es.ValidatorProfiles = iblockproc.ValidatorProfiles{
-		1: drivertype.Validator{
+		1000: drivertype.Validator{
 			Weight: big.NewInt(1),
 			PubKey: pk,
 		},
