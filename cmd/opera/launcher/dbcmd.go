@@ -23,6 +23,10 @@ var (
 		Name:  "experimental",
 		Usage: "Allow experimental DB fixing",
 	}
+	maxepochFlag = cli.Int64Flag{
+		Name:  "maxepoch",
+		Usage: "Maximum epoch to revert state to",
+	}
 	dbCommand = cli.Command{
 		Name:        "db",
 		Usage:       "A set of commands related to leveldb database",
@@ -66,6 +70,7 @@ will migrate tables layout according to the configuration.
 				Flags: []cli.Flag{
 					utils.DataDirFlag,
 					experimentalFlag,
+					maxepochFlag,
 				},
 				Description: `
 opera db heal --experimental

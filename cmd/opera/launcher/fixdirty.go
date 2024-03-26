@@ -29,6 +29,7 @@ func healDirty(ctx *cli.Context) error {
 	if !ctx.Bool(experimentalFlag.Name) {
 		utils.Fatalf("Add --experimental flag")
 	}
+	maxepoch := idx.Epoch(ctx.Int64(maxepochFlag.Name))
 	cfg := makeAllConfigs(ctx)
 
 	log.Info("Opening databases")
@@ -36,7 +37,7 @@ func healDirty(ctx *cli.Context) error {
 	multiProducer := makeDirectDBsProducerFrom(dbTypes, cfg)
 
 	// reverts the gossip database state
-	epochState, topEpoch, err := fixDirtyGossipDb(multiProducer, cfg)
+	epochState, topEpoch, err := fixDirtyGossipDb(multiProducer, cfg, maxepoch)
 	if err != nil {
 		return err
 	}
@@ -84,14 +85,14 @@ func healDirty(ctx *cli.Context) error {
 }
 
 // fixDirtyGossipDb reverts the gossip database into state, when was one of last epochs sealed
-func fixDirtyGossipDb(producer kvdb.FlushableDBProducer, cfg *config) (
+func fixDirtyGossipDb(producer kvdb.FlushableDBProducer, cfg *config, maxepoch idx.Epoch) (
 	epochState *iblockproc.EpochState, topEpoch idx.Epoch, err error) {
 	gdb := makeGossipStore(producer, cfg) // requires FlushIDKey present (not clean) in all dbs
 	defer gdb.Close()
 	topEpoch = gdb.GetEpoch()
 
 	// find the last closed epoch with the state available
-	epochIdx, blockState, epochState := getLastEpochWithState(gdb, maxEpochsToTry)
+	epochIdx, blockState, epochState := getLastEpochWithState(gdb, maxEpochsToTry, maxepoch)
 	if blockState == nil || epochState == nil {
 		return nil, 0, fmt.Errorf("state for last %d closed epochs is pruned, recovery isn't possible", maxEpochsToTry)
 	}
@@ -116,8 +117,11 @@ func fixDirtyGossipDb(producer kvdb.FlushableDBProducer, cfg *config) (
 }
 
 // getLastEpochWithState finds the last closed epoch with the state available
-func getLastEpochWithState(gdb *gossip.Store, epochsToTry idx.Epoch) (epochIdx idx.Epoch, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
-	currentEpoch := gdb.GetEpoch()
+func getLastEpochWithState(gdb *gossip.Store, epochsToTry idx.Epoch, maxepoch idx.Epoch) (epochIdx idx.Epoch, blockState *iblockproc.BlockState, epochState *iblockproc.EpochState) {
+	currentEpoch := maxepoch
+	if maxepoch == 0 {
+		currentEpoch = gdb.GetEpoch()
+	}
 	endEpoch := idx.Epoch(1)
 	if currentEpoch > epochsToTry {
 		endEpoch = currentEpoch - epochsToTry
