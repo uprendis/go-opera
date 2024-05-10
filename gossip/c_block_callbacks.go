@@ -55,6 +55,9 @@ var (
 	blockAgeGauge       = metrics.GetOrRegisterGauge("chain/block/age", nil)
 )
 
+var tt = time.Duration(0)
+var tt_c = time.Duration(0)
+
 type ExtendedTxPosition struct {
 	evmstore.TxPosition
 	EventCreator idx.ValidatorID
@@ -104,6 +107,9 @@ func consensusCallbackBeginBlockFn(
 		}
 		wg.Wait()
 		start := time.Now()
+		defer func() {
+			tt_c += time.Since(start)
+		}()
 
 		// Note: take copies to avoid race conditions with API calls
 		bs := store.GetBlockState().Copy()
@@ -444,6 +450,15 @@ func consensusCallbackBeginBlockFn(
 					log.Info("New block", "index", blockCtx.Idx, "id", block.Atropos, "gas_used",
 						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
 						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
+					tt += now.Sub(start)
+					if blockCtx.Idx%10 == 0 {
+						println("blocks", tt.String())
+						println("blocks_c", tt_c.String())
+						println("events whole", tewhole.String())
+						println("events", te.String())
+						println("events only", (te - tt_c).String())
+						println("commits", tcommit.String())
+					}
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 				}
 				if confirmedEvents.Len() != 0 {
