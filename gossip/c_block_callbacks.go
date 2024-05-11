@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/Fantom-foundation/go-opera/gossip/blockproc/evmmodule"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -57,6 +58,8 @@ var (
 
 var tt = time.Duration(0)
 var tt_c = time.Duration(0)
+var tt_evm = time.Duration(0)
+var tt_evm_all = time.Duration(0)
 
 type ExtendedTxPosition struct {
 	evmstore.TxPosition
@@ -107,9 +110,6 @@ func consensusCallbackBeginBlockFn(
 		}
 		wg.Wait()
 		start := time.Now()
-		defer func() {
-			tt_c += time.Since(start)
-		}()
 
 		// Note: take copies to avoid race conditions with API calls
 		bs := store.GetBlockState().Copy()
@@ -204,6 +204,10 @@ func consensusCallbackBeginBlockFn(
 				}
 			},
 			EndBlock: func() (newValidators *pos.Validators) {
+				defer func() {
+					tt_c += time.Since(start)
+				}()
+				evmmodule.Tt = 0
 				if atroposTime <= bs.LastBlock.Time {
 					atroposTime = bs.LastBlock.Time + 1
 				}
@@ -451,6 +455,10 @@ func consensusCallbackBeginBlockFn(
 						evmBlock.GasUsed, "txs", fmt.Sprintf("%d/%d", len(evmBlock.Transactions), len(block.SkippedTxs)),
 						"age", utils.PrettyDuration(blockAge), "t", utils.PrettyDuration(now.Sub(start)))
 					tt += now.Sub(start)
+					if evmBlock.GasUsed >= 4500000 {
+						tt_evm += evmmodule.Tt
+					}
+					tt_evm_all += evmmodule.Tt
 					if blockCtx.Idx%10 == 0 {
 						println("blocks", tt.String())
 						println("blocks_c", tt_c.String())
@@ -458,6 +466,8 @@ func consensusCallbackBeginBlockFn(
 						println("events", te.String())
 						println("events only", (te - tt_c).String())
 						println("commits", tcommit.String())
+						println("evm", tt_evm.String())
+						println("evm_all", tt_evm_all.String())
 					}
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 				}
