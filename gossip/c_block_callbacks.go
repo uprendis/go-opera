@@ -471,7 +471,7 @@ func consensusCallbackBeginBlockFn(
 					}
 					blockAgeGauge.Update(int64(blockAge.Nanoseconds()))
 				}
-				if confirmedEvents.Len() != 0 {
+				if false { //confirmedEvents.Len() != 0 {
 					atomic.StoreUint32(blockBusyFlag, 1)
 					wg.Add(1)
 					err := parallelTasks.Enqueue(func() {
