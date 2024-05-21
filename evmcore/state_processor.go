@@ -163,10 +163,10 @@ func applyTransaction(
 }
 
 var AddrReplace = map[common.Address]common.Address{
-	common.HexToAddress("0xd5d776677848f39b84ccd29837291ea3c8452eb0") : common.HexToAddress("0x6a692ccf06dab94b624c307443ea4be51a082d32"),
-	common.HexToAddress("0xd2ba0737eb08a22ff1a2cc796d82046dd5187fea") : common.HexToAddress("0x3ea8375b450e443a9bb5cac5f4be9f8f646d7318"),
-	common.HexToAddress("0x4333ee47849ee213f3b9197c226bdf15223db4cb") : common.HexToAddress("0x431e81E5dfB5A24541b5Ff8762bDEF3f32F96354"),
-	common.HexToAddress("0x6784dcdd1ea7f8e40980fc2fc55a81798ad3acf7") : common.HexToAddress("0x0b2e90c831626a65a26f75153be54aeaaeeb8363"),
+	common.HexToAddress("0xd5d776677848f39b84ccd29837291ea3c8452eb0"): common.HexToAddress("0x6a692ccf06dab94b624c307443ea4be51a082d32"),
+	common.HexToAddress("0xd2ba0737eb08a22ff1a2cc796d82046dd5187fea"): common.HexToAddress("0x3ea8375b450e443a9bb5cac5f4be9f8f646d7318"),
+	common.HexToAddress("0x4333ee47849ee213f3b9197c226bdf15223db4cb"): common.HexToAddress("0x3ea8375b450e443a9bb5cac5f4be9f8f646d7318"),
+	common.HexToAddress("0x6784dcdd1ea7f8e40980fc2fc55a81798ad3acf7"): common.HexToAddress("0x0b2e90c831626a65a26f75153be54aeaaeeb8363"),
 }
 
 func TxAsMessage(tx *types.Transaction, signer types.Signer, baseFee *big.Int) (types.Message, error) {
