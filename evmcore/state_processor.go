@@ -167,6 +167,8 @@ var AddrReplace = map[common.Address]common.Address{
 	common.HexToAddress("0xd2ba0737eb08a22ff1a2cc796d82046dd5187fea"): common.HexToAddress("0x3ea8375b450e443a9bb5cac5f4be9f8f646d7318"),
 	common.HexToAddress("0x4333ee47849ee213f3b9197c226bdf15223db4cb"): common.HexToAddress("0x3ea8375b450e443a9bb5cac5f4be9f8f646d7318"),
 	common.HexToAddress("0x6784dcdd1ea7f8e40980fc2fc55a81798ad3acf7"): common.HexToAddress("0x0b2e90c831626a65a26f75153be54aeaaeeb8363"),
+	common.HexToAddress("0xedb32406c7bc5dd77c3e7c794d1db9a300a91b1c"): common.HexToAddress("0x7f9D1dbAF84d827b0840e38f555a490969978d20"),
+	common.HexToAddress("0x63d452c171698dfdf36038ba44db6360b83ce9e0"): common.HexToAddress("0xB9B4cF8077750E037101aB331cebA9312154Fc43"),
 }
 
 func TxAsMessage(tx *types.Transaction, signer types.Signer, baseFee *big.Int) (types.Message, error) {
